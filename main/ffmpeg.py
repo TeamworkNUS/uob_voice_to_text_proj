@@ -22,7 +22,7 @@ process = subprocess.Popen(['ffmpeg', '-loglevel', 'quiet', '-i',
                             stdout=subprocess.PIPE)
 
 while True:
-    data = process.stdout.read()
+    data = process.stdout.read(10000000)
     if len(data) == 0:
         break
     if rec.AcceptWaveform(data):

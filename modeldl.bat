@@ -10,5 +10,6 @@ jar xf vosk-model-en-us-0.22.zip
 echo ###################################################################################
 echo move model to folder...
 MOVE vosk-model-en-us-0.22 model
+move model "main/model"
 echo success!
 pause
