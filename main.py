@@ -64,7 +64,8 @@ print('*' * 30)
 print('length:',len(y), 'sample rate:', sr, 'duration(s):',audio_duration)
 print('*' * 30)
 
-
+###choose your model here
+sd_proc='pyannoteaudio' # [pyannoteaudio, malaya]
 
 #### * Load models
 ## Noise reduce models
@@ -72,8 +73,11 @@ nr_model, nr_quantized_model = uob_noisereduce.load_noisereduce_model(modelname=
 ## Load malaya speaker vector model 
 sv_model_speakernet, sv_model_vggvox2 = uob_speakerdiarization.load_speaker_vector()
 ## Load pyannote.audio pipeline for sd
-pa_pipeline = None
-pa_pipeline = pa_Pipeline.from_pretrained('pyannote/speaker-diarization')  # TODO: uncomment for Pyannote.audio model. !!specturalcluster package needs to be updated.
+if if sd_proc == 'malaya':
+    pa_pipeline = None
+else:
+    pa_pipeline = pa_Pipeline.from_pretrained('pyannote/speaker-diarization') 
+#!!specturalcluster package needs to be updated.
 print('Pretrained Models Loading Done!!!')
 print('*' * 30)
 
@@ -112,7 +116,7 @@ if chunksfolder != '':
                                                 sv_model=sv_model_speakernet,    # ?: sv_model_speakernet, sv_model_vggvox2
                                                 pipeline=pa_pipeline,
                                                 reducenoise=False,
-                                                sd_proc='pyannoteaudio')  # ?: [pyannoteaudio, malaya]
+                                                sd_proc=sd_proc)  
             
             
             # TODO: ....................... STT .........................
@@ -134,7 +138,7 @@ else:
                                         sv_model=sv_model_speakernet,    # ?: sv_model_speakernet, sv_model_vggvox2
                                         pipeline=pa_pipeline,
                                         reducenoise=False, 
-                                        sd_proc='pyannoteaudio')  # ?: [pyannoteaudio, malaya]
+                                        sd_proc=sd_proc)  
     
     
     
