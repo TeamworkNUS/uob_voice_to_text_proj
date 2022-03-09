@@ -26,7 +26,7 @@ Website](https://alphacephei.com/vosk). See also our project on
 # Installation Guideline
 1. Install python 3.7.0
 2. Create and activate a virtual environment for the project
-	Command:
+	>> Command:
 	python -m venv (projectname)
 	(projectname)\Scripts\activate.bat
 3. Run the requirements.txt to install packages
