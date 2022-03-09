@@ -32,8 +32,12 @@ Website](https://alphacephei.com/vosk). See also our project on
 	(projectname)\Scripts\activate.bat
 ```
 3. Run the requirements.txt to install packages
-	> pip install -r requirements.txt
+```
+	pip install -r requirements.txt
+```
 4. For STT, please copy the model to 'example' folder, and rename it to 'model'
 5. In 'example' folder, run the script to call the model and test:
-	> python ffmpeg.py (test audio file name.wav/mp3)
-	>> e.g: python ffmpeg.py welcome.wav
+```
+	python ffmpeg.py (test audio file name.wav/mp3)
+	 e.g: python ffmpeg.py welcome.wav
+```
