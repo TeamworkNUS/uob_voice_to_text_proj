@@ -7,6 +7,7 @@ Version     Date    Change_by   Description
 '''
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
+from datetime import datetime
 import soundfile as sf
 import malaya_speech
 from pyannote.audio import Pipeline
@@ -16,7 +17,7 @@ import numpy as np
 
 import uob_noisereduce, uob_speakerdiarization
 
-def process(y, sr, audioname, audiopath, audiofile, nr_model=None, sv_model=None, pipeline=None, reducenoise:bool=False, sd_proc='pyannoteaudio'):
+def process(y, sr, audioname, audiopath, audiofile, nr_model=None, vad_model=None, sv_model=None, pipeline=None, reducenoise:bool=False, sd_proc='pyannoteaudio'):
     ## Reduce noise
     if reducenoise == True:
         ## load nr models
@@ -34,7 +35,7 @@ def process(y, sr, audioname, audiopath, audiofile, nr_model=None, sv_model=None
     
     ## Speaker Diarization
     if sd_proc == 'malaya':
-        sd_result = malaya_sd(y, sr, audioname, audiopath, sv_model)
+        sd_result = malaya_sd(y, sr, audioname, audiopath, vad_model, sv_model)
     elif sd_proc == 'pyannoteaudio':
         sd_result = pyannoteaudio_sd(audioname, audiopath, audiofile, pipeline)
     
@@ -72,7 +73,7 @@ def malaya_reduce_noise(y, sr, nr_model):
     
     
     
-def malaya_sd(y, sr, audioname, audiopath, sv_model):  
+def malaya_sd(y, sr, audioname, audiopath, vad_model, sv_model):  
     '''
     INPUT
         y: waveform of audio
@@ -85,7 +86,7 @@ def malaya_sd(y, sr, audioname, audiopath, sv_model):
     ### * Speaker Diarization
     ## Load SD model + VAD
     # model_speakernet, model_vggvox2 = uob_speakerdiarization.load_speaker_vector()
-    grouped_vad = uob_speakerdiarization.load_vad(y, sr, frame_duration_ms=30, threshold_to_stop=0.3)
+    grouped_vad = uob_speakerdiarization.load_vad(y, sr, vad_model = vad_model, frame_duration_ms=30, threshold_to_stop=0.3)
     speaker_vector = sv_model #model_speakernet
 
     
@@ -93,8 +94,8 @@ def malaya_sd(y, sr, audioname, audiopath, sv_model):
     # ?: choose a SD function below, comment others
     # result_sd = uob_speakerdiarization.speaker_similarity(speaker_vector, grouped_vad)
     # result_sd = uob_speakerdiarization.affinity_propagation(speaker_vector, grouped_vad)
-    result_sd = uob_speakerdiarization.spectral_clustering(speaker_vector, grouped_vad, min_clusters=2, max_clusters=3) #!p_percentile issue
-    # result_sd = uob_speakerdiarization.n_speakers_clustering(speaker_vector, grouped_vad, n_speakers=3, model='kmeans') #['spectralcluster','kmeans']
+    # result_sd = uob_speakerdiarization.spectral_clustering(speaker_vector, grouped_vad, min_clusters=2, max_clusters=3) #!p_percentile issue
+    result_sd = uob_speakerdiarization.n_speakers_clustering(speaker_vector, grouped_vad, n_speakers=2, model='kmeans') #['spectralcluster','kmeans']
     # result_sd = uob_speakerdiarization.speaker_change_detection(grouped_vad, y, sr,frame_duration_ms=500, 
     #                                                           min_clusters = 2, max_clusters = 3) #!p_percentile issue
     
@@ -119,7 +120,7 @@ def malaya_sd(y, sr, audioname, audiopath, sv_model):
     # namef_other, namef_index = namef.rsplit("_", 1)
     # save_name = '%s_%04d.%s'%(namef_other,namef_index,'csv')
     namec = namec[1:]
-    save_name = '%s.%s'%(namef, 'csv')
+    save_name = '%s_%s.%s'%(namef, datetime.now().strftime('%y%m%d-%H%M%S'), 'csv')
     np.savetxt(os.path.join(audiopath,save_name), result_timestamps,
                delimiter=',', fmt='% s')
     
@@ -156,7 +157,7 @@ def pyannoteaudio_sd(audioname, audiopath, audiofile, pa_pipeline):
     # namef_other, namef_index = namef.rsplit("_", 1)
     # save_name = '%s_%04d.%s'%(namef_other,namef_index,'csv')
     namec = namec[1:]
-    save_name = '%s.%s'%(namef, 'csv')
+    save_name = '%s_%s.%s'%(namef, datetime.now().strftime('%y%m%d-%H%M%S'), 'csv')
     np.savetxt(os.path.join(audiopath,save_name), result_timestamps,
                delimiter=',', fmt='% s')
     

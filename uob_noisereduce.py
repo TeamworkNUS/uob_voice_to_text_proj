@@ -9,27 +9,24 @@ Version     Date    Change_by   Description
 import numpy as np
 import malaya_speech
 from malaya_speech import Pipeline
-import IPython.display as ipd
-import librosa
+
+import uob_extractmodel
 
 
-def load_noisereduce_model(modelname='resnet-unet'): #, sr=44100):
-    # y, sr = malaya_speech.load(audio_file, sr)
-    # print(len(y), sr, len(y) / sr)
-    # ipd.Audio(y[:], rate = sr)  # play the audio
-    
+def load_noisereduce_model(quantized = False): 
     ## List available deep model:
     # malaya_speech.noise_reduction.available_model()
     
     ## Load deep model
-    model = malaya_speech.noise_reduction.deep_model(model = modelname)
-    quantized_model = malaya_speech.noise_reduction.deep_model(model = modelname, quantized = True)
-    
-    # #! Noise Reduction model trained on 44k sample rate, so make sure load the audio with 44k sample rate.
-    # malaya_speech.load(audio_file, sr = 44100)
-    # librosa.load(audio_file, sr = 44100)
-    
-    return model, quantized_model
+    model = malaya_speech.noise_reduction.deep_model(model = 'resnet-unet', quantized=quantized)
+    #! Noise Reduction model trained on 44k sample rate, so make sure load the audio with 44k sample rate.
+    return model
+
+def load_noisereduce_model_local(quantized = False): 
+
+    model = uob_extractmodel.get_model_noisereduce(model = 'resnet-unet', quantized=quantized)
+    #! Noise Reduction model trained on 44k sample rate, so make sure load the audio with 44k sample rate.
+    return model
 
 
 def get_splitted_output(y, sr, model):

@@ -68,14 +68,20 @@ print('*' * 30)
 
 #### * Load models
 ## Noise reduce models
-nr_model, nr_quantized_model = uob_noisereduce.load_noisereduce_model(modelname='resnet-unet')
+# nr_model = uob_noisereduce.load_noisereduce_model(quantized=False)
+nr_model = uob_noisereduce.load_noisereduce_model_local(quantized=False)
+## Load malaya vad model
+# vad_model_vggvox2 = uob_speakerdiarization.load_vad_model(quantized=False)
+vad_model_vggvox2 = uob_speakerdiarization.load_vad_model_local(quantized=False)
 ## Load malaya speaker vector model 
-sv_model_speakernet, sv_model_vggvox2 = uob_speakerdiarization.load_speaker_vector()
+# sv_model_speakernet, sv_model_vggvox2 = uob_speakerdiarization.load_speaker_vector_model(quantized=False)
+sv_model_speakernet, sv_model_vggvox2 = uob_speakerdiarization.load_speaker_vector_model_local(quantized=False)
 ## Load pyannote.audio pipeline for sd
 pa_pipeline = None
 pa_pipeline = pa_Pipeline.from_pretrained('pyannote/speaker-diarization')  # TODO: uncomment for Pyannote.audio model. !!specturalcluster package needs to be updated.
 print('Pretrained Models Loading Done!!!')
 print('*' * 30)
+
 
 #### * Segmentation
 chunksfolder = ''
@@ -109,6 +115,7 @@ if chunksfolder != '':
                                                 audiopath=chunksfolder,
                                                 audiofile=file,
                                                 nr_model=nr_model,   # ?: [nr_model, nr_quantized_model]
+                                                vad_model=vad_model_vggvox2,
                                                 sv_model=sv_model_speakernet,    # ?: sv_model_speakernet, sv_model_vggvox2
                                                 pipeline=pa_pipeline,
                                                 reducenoise=False,
@@ -131,6 +138,7 @@ else:
                                         audiopath=AUDIO_PATH,
                                         audiofile=AUDIO_FILE,
                                         nr_model=nr_model,   # ?: [nr_model, nr_quantized_model]
+                                        vad_model=vad_model_vggvox2,
                                         sv_model=sv_model_speakernet,    # ?: sv_model_speakernet, sv_model_vggvox2
                                         pipeline=pa_pipeline,
                                         reducenoise=False, 
