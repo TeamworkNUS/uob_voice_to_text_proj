@@ -22,3 +22,16 @@ big clusters.
 For installation instructions, examples and documentation visit [Vosk
 Website](https://alphacephei.com/vosk). See also our project on
 [Github](https://github.com/alphacep/vosk-api).
+
+# Installation Guideline
+1. Install python 3.7.0
+2. Create and activate a virtual environment for the project
+	Command:
+	python -m venv (projectname)
+	(projectname)\Scripts\activate.bat
+3. Run the requirements.txt to install packages
+	pip install -r requirements.txt
+4. For STT, please copy the model to 'example' folder, and rename it to 'model'
+5. In 'example' folder, run the script to call the model and test:
+	python ffmpeg.py (test audio file name.wav/mp3)
+	e.g: python ffmpeg.py welcome.wav
