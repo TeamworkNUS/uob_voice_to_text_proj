@@ -35,8 +35,8 @@ Website](https://alphacephei.com/vosk). See also our project on
 ```
 	pip install -r requirements.txt
 ```
-4. For STT, please copy the model to 'example' folder, and rename it to 'model'
-5. In 'example' folder, run the script to call the model and test:
+4. For STT, please copy the model to 'main' folder, and rename it to 'model'
+5. In 'main' folder, run the script to call the model and test:
 ```
 	python ffmpeg.py (test audio file name.wav/mp3)
 	 e.g: python ffmpeg.py welcome.wav
