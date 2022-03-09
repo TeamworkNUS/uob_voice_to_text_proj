@@ -118,6 +118,7 @@ if chunksfolder != '':
                                                 vad_model=vad_model_vggvox2,
                                                 sv_model=sv_model_speakernet,    # ?: sv_model_speakernet, sv_model_vggvox2
                                                 pipeline=pa_pipeline,
+                                                chunks=True,
                                                 reducenoise=False,
                                                 sd_proc='pyannoteaudio')  # ?: [pyannoteaudio, malaya]
             
@@ -141,6 +142,7 @@ else:
                                         vad_model=vad_model_vggvox2,
                                         sv_model=sv_model_speakernet,    # ?: sv_model_speakernet, sv_model_vggvox2
                                         pipeline=pa_pipeline,
+                                        chunks=False,
                                         reducenoise=False, 
                                         sd_proc='pyannoteaudio')  # ?: [pyannoteaudio, malaya]
     

@@ -17,7 +17,7 @@ import numpy as np
 
 import uob_noisereduce, uob_speakerdiarization
 
-def process(y, sr, audioname, audiopath, audiofile, nr_model=None, vad_model=None, sv_model=None, pipeline=None, reducenoise:bool=False, sd_proc='pyannoteaudio'):
+def process(y, sr, audioname, audiopath, audiofile, nr_model=None, vad_model=None, sv_model=None, pipeline=None, chunks:bool=True, reducenoise:bool=False, sd_proc='pyannoteaudio'):
     ## Reduce noise
     if reducenoise == True:
         ## load nr models
@@ -25,12 +25,18 @@ def process(y, sr, audioname, audiopath, audiofile, nr_model=None, vad_model=Non
         # start to process
         y = malaya_reduce_noise(y, sr, nr_model=nr_model)
         
-        namef, namec = os.path.splitext(audioname)
-        namef_other, namef_index = namef.rsplit("_", 1)
-        namef_index = int(namef_index)
-        namec = namec[1:]
-        audioname = '%s_%04d.%s'%(namef_other+'_nr',namef_index,namec)
-        sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
+        if chunks:
+            namef, namec = os.path.splitext(audioname)
+            namef_other, namef_index = namef.rsplit("_", 1)
+            namef_index = int(namef_index)
+            namec = namec[1:]
+            audioname = '%s_%04d.%s'%(namef_other+'_nr',namef_index,namec)
+            sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
+        else:
+            namef, namec = os.path.splitext(audioname)
+            namec = namec[1:]
+            audioname = '%s.%s'%(namef+'_nr',namec)
+            sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
     
     
     ## Speaker Diarization
