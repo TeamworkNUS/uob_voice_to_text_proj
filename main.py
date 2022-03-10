@@ -111,7 +111,7 @@ if chunksfolder != '':
                        
             ### * Process: reduce noise + vad + scd + ovl + sd
             sd_result = uob_mainprocess.process(y, sr, 
-                                                audioname=filename,
+                                                audioname=filename if sd_proc == "malaya" else file,
                                                 audiopath=chunksfolder,
                                                 audiofile=file,
                                                 nr_model=nr_model,   # ?: [nr_model, nr_quantized_model]
@@ -135,7 +135,7 @@ else:
 
     ### * Process: reduce noise + vad + scd + ovl + sd
     sd_result = uob_mainprocess.process(y, sr, 
-                                        audioname=AUDIO_NAME,
+                                        audioname=AUDIO_NAME if sd_proc == "malaya" else AUDIO_FILE,
                                         audiopath=AUDIO_PATH,
                                         audiofile=AUDIO_FILE,
                                         nr_model=nr_model,   # ?: [nr_model, nr_quantized_model]
