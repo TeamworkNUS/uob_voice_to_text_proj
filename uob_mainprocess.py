@@ -15,9 +15,9 @@ from pyannote.audio import Pipeline
 import os
 import numpy as np
 
-import uob_noisereduce, uob_speakerdiarization
+import uob_noisereduce, uob_speakerdiarization, uob_audiosegmentation
 
-def process(y, sr, audioname, audiopath, audiofile, nr_model=None, vad_model=None, sv_model=None, pipeline=None, chunks:bool=True, reducenoise:bool=False, sd_proc='pyannoteaudio'):
+def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, vad_model=None, sv_model=None, pipeline=None, chunks:bool=True, reducenoise:bool=False, sd_proc='pyannoteaudio'):
     ## Reduce noise
     if reducenoise == True:
         ## load nr models
@@ -112,14 +112,15 @@ def malaya_sd(y, sr, audioname, audiopath, vad_model, sv_model):
     
     ## Print & Save result to csv
     result_timestamps = []
-    result_timestamp = ['starttime','endtime','duration','speaker_label']
+    result_timestamp = ['index','starttime','endtime','duration','speaker_label']
     result_timestamps.append(result_timestamp)
-    print('start\tend\tduration\tlabel')
+    print('Index\tStart\tEnd\tDuration\tSpeaker')
     for i in grouped_result:
+        index = grouped_result.index(i) + 1
         end = i[0].timestamp+i[0].duration
-        print(str(i[0].timestamp)+'\t'+str(end)+'\t'+str(i[0].duration)+'\t'+str(i[1]))
+        print(str(index)+'\t'+str(i[0].timestamp)+'\t'+str(end)+'\t'+str(i[0].duration)+'\t'+str(i[1]))
 
-        result_timestamp = [str(i[0].timestamp),str(end),str(i[0].duration),str(i[1])]
+        result_timestamp = [int(index), float(i[0].timestamp), float(end), float(i[0].duration),str(i[1])]
         result_timestamps.append(result_timestamp)
 
     namef, namec = os.path.splitext(audioname)
@@ -132,7 +133,8 @@ def malaya_sd(y, sr, audioname, audiopath, vad_model, sv_model):
     
     # TODO: convert to common format
     
-    return diarization_result
+    # return diarization_result
+    return result_timestamps
 
 
 
@@ -150,13 +152,15 @@ def pyannoteaudio_sd(audioname, audiopath, audiofile, pa_pipeline):
     
     ## Print & Save time period & speaker label
     result_timestamps = []
-    result_timestamp = ['starttime','endtime','duration','speaker_label']
+    result_timestamp = ['index','starttime','endtime','duration','speaker_label']
     result_timestamps.append(result_timestamp)
-    print('Start\tEnd\tPoint\tSpeaker')
-    for turn, xxx, speaker in diarization_result.itertracks(yield_label=True):
+    index = 0
+    print('Index\tStart\tEnd\tDuration\tSpeaker')
+    for turn, _, speaker in diarization_result.itertracks(yield_label=True):
         # speaker speaks between turn.start and turn.end
-        print(turn.start, turn.end, xxx, speaker)
-        result_timestamp = [str(turn.start),str(turn.end),str(turn.end-turn.start),str(speaker)]
+        index += 1
+        print(index, turn.start, turn.end, turn.end-turn.start, speaker)
+        result_timestamp = [int(index), float(turn.start), float(turn.end), float(turn.end-turn.start), str(speaker)]
         result_timestamps.append(result_timestamp)
 
     namef, namec = os.path.splitext(audioname)
@@ -169,4 +173,24 @@ def pyannoteaudio_sd(audioname, audiopath, audiofile, pa_pipeline):
     
     # TODO: convert to common format
     
-    return diarization_result
+    # return diarization_result
+    return result_timestamps
+
+
+def cut_audio_by_timestamps(start_end_list:list, audioname, audiofile, part_path):
+    # index = 0
+    for row in start_end_list:
+        # print(', '.join(row))
+        index=row[0]
+        start=row[1]
+        end=row[2]
+        # dur=float(row[3])
+        # label=row[4]
+        
+        # index += 1
+        namef, namec = os.path.splitext(audioname)
+        namec = namec[1:]
+        part_name = '%s_%s.%s'%(namef, str(index), namec)
+        part_file = part_path + '/' + part_name
+        
+        uob_audiosegmentation.get_second_part_wav(audiofile, start, end, part_file)

@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 ''' Logging
 Version     Date    Change_by   Description
-#00     2022-Feb-28     Zhao Tongtong   Initial version  
+#00     2022-Feb-28     ZhaoTongtong,ZengRui   Initial version  
 
 
 '''
@@ -10,6 +10,9 @@ Version     Date    Change_by   Description
 
 import os
 from datetime import datetime
+import pandas as pd
+import subprocess
+import re
 
 # import filetype # to check file type
 
@@ -19,6 +22,14 @@ from pydub import AudioSegment
 
 
 import uob_audiosegmentation, uob_noisereduce, uob_speakerdiarization, uob_mainprocess
+from init import (
+    pretrained_model_path,
+    AUDIO_NAME,
+    AUDIO_PATH,
+    AUDIO_FILE,
+    SAMPLE_RATE,
+    sd_global_starttime
+)
 
 
 # TODO: get uploaded file name from Front-End
@@ -28,7 +39,7 @@ import uob_audiosegmentation, uob_noisereduce, uob_speakerdiarization, uob_mainp
 
 #### TODO: Convert to .wav / Resampling
 #### * Check if an Audio file
-# kind = filetype.guess('Bdb001_interaction_first60s.wav')
+# kind = filetype.guess(AUDIO_FILE)
 # if kind is None:
 #     print('Cannot guess file type!')
 
@@ -45,11 +56,12 @@ import uob_audiosegmentation, uob_noisereduce, uob_speakerdiarization, uob_mainp
 
 
 
-#### * Declare variables
-AUDIO_NAME = 'Bdb001_interaction_first60s.wav' #'Bdb001_interaction_first60s.wav' #'The-Singaporean-White-Boy.wav'
-AUDIO_PATH = './'
-AUDIO_FILE = os.path.join(AUDIO_PATH,AUDIO_NAME)
-SAMPLE_RATE = 44100
+#### * Declare variables --> Declare in <init.py>
+# AUDIO_NAME = 'The-Singaporean-White-Boy.wav' #'Bdb001_interaction_first60s.wav' #'The-Singaporean-White-Boy.wav'
+# AUDIO_PATH = './wav/'
+# AUDIO_FILE = os.path.join(AUDIO_PATH,AUDIO_NAME)
+# SAMPLE_RATE = 44100
+
 num_audio_files = 1
 
 starttime = datetime.now()
@@ -99,8 +111,10 @@ print('Number of audio files to process: ', num_audio_files)
 print('*' * 30)
 
 
-#### * Process
-# chunksfolder = 'chunks_The-S_20220228_162841'   # * for test
+#### * Process SD
+# chunksfolder = './wav/chunks_The-S_20220309_185316' #'chunks_The-S_20220228_162841'   # * for test
+tem_sd_result = []
+tem_sd_index = 0
 if chunksfolder != '':
     for filename in os.listdir(chunksfolder+"/"):
         if filename.endswith(".wav"): 
@@ -110,7 +124,8 @@ if chunksfolder != '':
             y, sr = malaya_speech.load(file, SAMPLE_RATE)
                        
             ### * Process: reduce noise + vad + scd + ovl + sd
-            sd_result = uob_mainprocess.process(y, sr, 
+            ## return list[index, start, end, duration, speaker_label]
+            sd_result = uob_mainprocess.sd_process(y, sr, 
                                                 audioname=filename,
                                                 audiopath=chunksfolder,
                                                 audiofile=file,
@@ -118,15 +133,25 @@ if chunksfolder != '':
                                                 vad_model=vad_model_vggvox2,
                                                 sv_model=sv_model_speakernet,    # ?: sv_model_speakernet, sv_model_vggvox2
                                                 pipeline=pa_pipeline,
-                                                chunks=True,
+                                                chunks=True, #fixed
                                                 reducenoise=False,
-                                                sd_proc='pyannoteaudio')  # ?: [pyannoteaudio, malaya]
+                                                sd_proc='malaya')  # ?: [pyannoteaudio, malaya]
             
             
-            # TODO: ....................... STT .........................
-            
-            # TODO: .......concatenation if breakdown into chunks........
-    
+            # ### * Cut audio by SD result
+            # slices_path = chunksfolder + '/slices'
+            # if not os.path.exists(slices_path):
+            #     os.mkdir(slices_path)
+            # uob_mainprocess.cut_audio_by_timestamps(start_end_list=sd_result, audioname=filename, audiofile=file, part_path=slices_path)
+            # print('*'*30, 'Cut')
+                    
+            for row in sd_result[1:]:
+                if 'not' not in row[4].lower():
+                    tem_sd_result.append( [tem_sd_index + 1,
+                                            row[1]+sd_global_starttime, 
+                                            row[1]+sd_global_starttime+row[3],
+                                            row[3],
+                                            row[4]])
 
 
 else:
@@ -134,7 +159,8 @@ else:
     y, sr = malaya_speech.load(AUDIO_FILE, SAMPLE_RATE)
 
     ### * Process: reduce noise + vad + scd + ovl + sd
-    sd_result = uob_mainprocess.process(y, sr, 
+    ## return list[index, start, end, duration, speaker_label]
+    sd_result = uob_mainprocess.sd_process(y, sr, 
                                         audioname=AUDIO_NAME,
                                         audiopath=AUDIO_PATH,
                                         audiofile=AUDIO_FILE,
@@ -142,20 +168,31 @@ else:
                                         vad_model=vad_model_vggvox2,
                                         sv_model=sv_model_speakernet,    # ?: sv_model_speakernet, sv_model_vggvox2
                                         pipeline=pa_pipeline,
-                                        chunks=False,
+                                        chunks=False, #fixed
                                         reducenoise=False, 
-                                        sd_proc='pyannoteaudio')  # ?: [pyannoteaudio, malaya]
+                                        sd_proc='malaya')  # ?: [pyannoteaudio, malaya]
     
-    
-    
-    # TODO: ....................... STT .........................
+    # ### * Cut audio by SD result
+    # namef, namec = os.path.splitext(AUDIO_NAME)
+    # slices_path = AUDIO_PATH+namef+'_slices'
+    # # slices_path = os.path.join(AUDIO_PATH, namef, 'slices').replace('\\','/')
+    # if not os.path.exists(slices_path):
+    #     os.mkdir(slices_path)
+    # uob_mainprocess.cut_audio_by_timestamps(start_end_list=sd_result, audioname=AUDIO_NAME, audiofile=AUDIO_FILE, part_path=slices_path)
+    # print('*'*30, 'Cut')
+
+    for row in sd_result[1:]:
+        if 'not' not in row[4].lower():
+            tem_sd_result.append([tem_sd_index + row[0],
+                                    row[1],
+                                    row[2],
+                                    row[3],
+                                    row[4]])
 
 
-
-
-
-
-
+# TODO: to move to the end after STT is done
+# Clear variables
+sd_global_starttime = 0.0
 
 endtime = datetime.now()
 
@@ -163,6 +200,51 @@ print('*' * 30,'\n  Finished!!',)
 print('start from:', starttime) 
 print('end at:', endtime) 
 print('duration: ', endtime-starttime)
+
+
+
+
+
+
+
+
+#### * Process STT
+
+final_sd_result = pd.DataFrame(tem_sd_result, columns=['index','starttime','endtime','duration','speaker_label'])
+print(final_sd_result)
+quit()  # TODO: comment after STT section is done completely
+
+###  Cut audio by SD result
+namef, namec = os.path.splitext(AUDIO_NAME)
+slices_path = AUDIO_PATH + namef + '_slices'  # TODO: where to save slices?
+if not os.path.exists(slices_path):
+    os.mkdir(slices_path)
+# TODO: next line, audio file is noisereduced or not?
+uob_mainprocess.cut_audio_by_timestamps(start_end_list=tem_sd_result, audioname=AUDIO_NAME, audiofile=AUDIO_FILE, part_path=slices_path)
+print('*'*30, 'Cut Slices Done')
+
+###  Speech to Text Conversion
+output=[]
+stt = pd.DataFrame(columns=['index', 'text'])
+for filename in os.listdir("./stt/"): #(slices_path+"/"):
+    if filename.endswith(".wav"): 
+        namef, namec = os.path.splitext(filename)
+        namef_other, namef_index = namef.rsplit("_", 1)
+        namef_index = int(namef_index)
+        
+        # file = slices_path+"/"+filename
+        
+        text = subprocess.check_output(["python","ffmpeg.py",filename],cwd= './stt').decode("utf-8")
+        textNew = re.findall('"([^"]*)"', text)
+        index = namef_index  # index = re.findall(r'\d+',filename)[-1]
+        stt.loc[len(stt)] = [index, textNew[1]]
+        
+# stt['index'] = stt['index'].astype(int)
+print(stt)
+print(final_sd_result)
+final = pd.merge(left = final_sd_result, right = stt, on="index",how='left')
+final.to_csv('output.csv')
+
 
 
 
