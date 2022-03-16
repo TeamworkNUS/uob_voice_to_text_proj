@@ -21,7 +21,7 @@ from pyannote.audio import Pipeline as pa_Pipeline
 from pydub import AudioSegment
 
 
-import uob_audiosegmentation, uob_noisereduce, uob_speakerdiarization, uob_mainprocess
+import uob_audiosegmentation, uob_noisereduce, uob_speakerdiarization, uob_stt, uob_mainprocess, uob_utils
 from init import (
     pretrained_model_path,
     AUDIO_NAME,
@@ -33,27 +33,22 @@ from init import (
 
 
 # TODO: get uploaded file name from Front-End
-
+# upload_AUDIO_NAME = AUDIO_NAME
+# upload_AUDIO_PATH = AUDIO_PATH
 
 
 
 #### TODO: Convert to .wav / Resampling
-#### * Check if an Audio file
-# kind = filetype.guess(AUDIO_FILE)
-# if kind is None:
-#     print('Cannot guess file type!')
+#### * Check if an Audio/wav file & convert to WAV file
+# file_extension, file_mime = uob_utils.check_file_type(upload_AUDIO_NAME, upload_AUDIO_PATH)
+# if file_extension == 'wav' and 'audio/' in file_mime and 'wav' in file_mime:
+#     AUDIO_NAME = upload_AUDIO_NAME
+#     AUDIO_PATH = upload_AUDIO_PATH
+# else:
+#     uob_utils.audio2wav(from_audioname=upload_AUDIO_NAME, from_audiopath=upload_AUDIO_PATH, to_audioname=AUDIO_NAME, to_audiopath=AUDIO_PATH)
 
-# print('File extension: %s' % kind.extension)
-# print('File MIME type: %s' % kind.mime)
-
-
-#### * Convert to .wav
-# audioname1='speech.mp3'
-# audiopath_from1='uob/from'
-# audiopath_to1='uob/to'
-# audiofile1 = os.path.join(audiopath_from1,audioname1)
-# AudioSegment.from_file(audiofile1).export(os.path.join(audiopath_to1,audioname1),format='wav')  # TODO: param setup - codec 
-
+# #### * Standardize Audio
+# uob_utils.standardize_audio(from_audioname=AUDIO_NAME, from_audiopath=AUDIO_PATH, to_audioname=AUDIO_NAME, to_audiopath=AUDIO_PATH,sample_rate=44100, no_of_channel=1)
 
 
 #### * Declare variables --> Declare in <init.py>
@@ -78,7 +73,7 @@ print('*' * 30)
 
 
 
-#### * Load models
+#### * Load SD models
 ## Noise reduce models
 # nr_model = uob_noisereduce.load_noisereduce_model(quantized=False)
 nr_model = uob_noisereduce.load_noisereduce_model_local(quantized=False)
@@ -97,7 +92,7 @@ print('*' * 30)
 
 #### * Segmentation
 chunksfolder = ''
-if audio_duration > 300:  # segment if longer than 5 min=300s
+if audio_duration > 3600:  # segment if longer than 5 min=300s
     totalchunks, nowtime = uob_audiosegmentation.audio_segmentation(name=AUDIO_NAME,file=AUDIO_FILE)
     print('  Segmentation Done!!!\n','*' * 30)
     chunksfolder = 'chunks_'+AUDIO_NAME[:5]+'_'+nowtime  #'./chunks'+nowtime 
@@ -147,11 +142,16 @@ if chunksfolder != '':
                     
             for row in sd_result[1:]:
                 if 'not' not in row[4].lower():
-                    tem_sd_result.append( [tem_sd_index + 1,
+                    tem_sd_index += 1
+                    tem_sd_result.append( [tem_sd_index,
                                             row[1]+sd_global_starttime, 
-                                            row[1]+sd_global_starttime+row[3],
+                                            row[2]+sd_global_starttime,
                                             row[3],
                                             row[4]])
+                    if row[0] == len(sd_result[1:]):
+                        sd_global_starttime += row[2]
+                    
+            
 
 
 else:
@@ -183,28 +183,12 @@ else:
 
     for row in sd_result[1:]:
         if 'not' not in row[4].lower():
-            tem_sd_result.append([tem_sd_index + row[0],
+            tem_sd_index += 1
+            tem_sd_result.append([tem_sd_index,
                                     row[1],
                                     row[2],
                                     row[3],
                                     row[4]])
-
-
-# TODO: to move to the end after STT is done
-# Clear variables
-sd_global_starttime = 0.0
-
-endtime = datetime.now()
-
-print('*' * 30,'\n  Finished!!',)
-print('start from:', starttime) 
-print('end at:', endtime) 
-print('duration: ', endtime-starttime)
-
-
-
-
-
 
 
 
@@ -212,7 +196,7 @@ print('duration: ', endtime-starttime)
 
 final_sd_result = pd.DataFrame(tem_sd_result, columns=['index','starttime','endtime','duration','speaker_label'])
 print(final_sd_result)
-quit()  # TODO: comment after STT section is done completely
+# quit()  # TODO: comment after STT section is done completely
 
 ###  Cut audio by SD result
 namef, namec = os.path.splitext(AUDIO_NAME)
@@ -224,27 +208,29 @@ uob_mainprocess.cut_audio_by_timestamps(start_end_list=tem_sd_result, audioname=
 print('*'*30, 'Cut Slices Done')
 
 ###  Speech to Text Conversion
-output=[]
-stt = pd.DataFrame(columns=['index', 'text'])
-for filename in os.listdir("./stt/"): #(slices_path+"/"):
-    if filename.endswith(".wav"): 
-        namef, namec = os.path.splitext(filename)
-        namef_other, namef_index = namef.rsplit("_", 1)
-        namef_index = int(namef_index)
+## Load VOSK model
+stt_model_vosk_rec = uob_stt.load_stt_model(stt_model='vosk',pretrained_model_path=os.path.join(pretrained_model_path,'stt/model'), sr=16000) # TODO: what's the sample rate?
+## STT start
+print('*'*30)
+print('STT Conversion Start')
+stt = uob_mainprocess.stt_process(slices_path=slices_path, rec=stt_model_vosk_rec)
         
-        # file = slices_path+"/"+filename
-        
-        text = subprocess.check_output(["python","ffmpeg.py",filename],cwd= './stt').decode("utf-8")
-        textNew = re.findall('"([^"]*)"', text)
-        index = namef_index  # index = re.findall(r'\d+',filename)[-1]
-        stt.loc[len(stt)] = [index, textNew[1]]
-        
-# stt['index'] = stt['index'].astype(int)
-print(stt)
-print(final_sd_result)
+# print(stt)
+# print(final_sd_result)
 final = pd.merge(left = final_sd_result, right = stt, on="index",how='left')
+print(final)
 final.to_csv('output.csv')
 
 
 
 
+
+# Clear variables
+sd_global_starttime = 0.0
+
+endtime = datetime.now()
+
+print('*' * 30,'\n  Finished!!',)
+print('start from:', starttime) 
+print('end at:', endtime) 
+print('duration: ', endtime-starttime)

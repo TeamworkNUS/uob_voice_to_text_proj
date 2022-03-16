@@ -125,22 +125,19 @@ def n_speakers_clustering(speaker_vector, grouped_vad, n_speakers=2, model='kmea
 
 
 ## Use speaker change detection
-def speaker_change_detection( grouped_vad, y, sr, 
+def speaker_change_detection( speaker_vector, grouped_vad, y, sr, 
                              frame_duration_ms=500, min_clusters = 2, max_clusters = 5):
+        
     # speakernet = malaya_speech.speaker_change.deep_model('speakernet')
-    # frames_speaker_change = list(malaya_speech.utils.generator.frames(y, frame_duration_ms, sr))
-    # probs_speakervec = [(frame, speaker_vector.predict_proba([frame])[0, 1]) for frame in frames_speaker_change]  # !: check function 'predict_proba' for all models.-->'Speaker2Vec' object has no attribute 'predict_proba'
-    
-    # speakernet = malaya_speech.speaker_change.deep_model('speakernet') #TODO: move to outside layer if possible
     speakernet = uob_extractmodel.get_model_speaker_change(model='speakernet')
     frames_speaker_change = list(malaya_speech.utils.generator.frames(y, frame_duration_ms, sr))
-    probs_speakernet = [(frame, speakernet.predict_proba([frame])[0, 1]) for frame in frames_speaker_change]
+    probs_speakernet = [(frame, speakernet.predict_proba([frame])[0, 1]) for frame in frames_speaker_change] # !: check function 'predict_proba' for all models.-->'Speaker2Vec' object has no attribute 'predict_proba'
     
     nested_grouped_vad = malaya_speech.utils.group.group_frames(grouped_vad)
     splitted_speakervec = malaya_speech.speaker_change.split_activities(nested_grouped_vad, probs_speakernet)
     
     result_diarization_sc_splitted_model = malaya_speech.diarization.spectral_cluster(splitted_speakervec, 
-                                                                                       probs_speakernet,
+                                                                                       speaker_vector,
                                                                                        min_clusters = min_clusters,
                                                                                        max_clusters = max_clusters)
     
