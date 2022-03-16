@@ -26,13 +26,13 @@ from init import (
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #                              Split By Sentence                          #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-def chunk_split_length_limit(chunk,min_silence_len=700,split_length_limit=60*1000,silence_thresh=-70):
+def chunk_split_length_limit(chunk,min_silence_len=700,length_limit=60*1000,silence_thresh=-70):
     '''
     split the audio file based on sentences, and limit the longest time for each sentence, return to a list
     Args:
         chunk: audio file
         min_silence_len: if silence exceeds 700ms then split
-        split_length_limit: each chunk lenth limit
+        length_limit: each chunk lenth limit
         silence_thresh: regard as silence if less than -70dBFS 
     Return:
         done_chunks: chunks list
@@ -46,7 +46,7 @@ def chunk_split_length_limit(chunk,min_silence_len=700,split_length_limit=60*100
         temp_chunk, temp_msl, temp_st = todo_arr.pop(0)
         # split
         # if not too long, then split ok
-        if len(temp_chunk)<split_length_limit:
+        if len(temp_chunk)<length_limit:
             done_chunks.append(temp_chunk)
         else:
             # if too long, start to process
@@ -72,14 +72,14 @@ def chunk_split_length_limit(chunk,min_silence_len=700,split_length_limit=60*100
 
 
 
-def chunk_join_length_limit(chunks, joint_silence_len=1000,length_limit=60*1000,joint_lenth_limit=30*1000):
+def chunk_join_length_limit(chunks, joint_silence_len=1000,length_limit=60*1000,joint_lenth_limit=5*1000):
     '''
     joint chunks, and limit the longest time for each sentence, return result in a list
     Args:
         chunk: audio file
         joint_silence_len: file interval during joint, default 1.3s=1300ms
         length_limit: after joint, each file length will not exceed this value, default 60s
-        joint_lenth_limit:  limit the file can be used for joining
+        joint_lenth_limit:  limit the file can be used for joint
     '''
     
     silence = AudioSegment.silent(duration=joint_silence_len)
@@ -89,8 +89,8 @@ def chunk_join_length_limit(chunks, joint_silence_len=1000,length_limit=60*1000,
         length = len(temp)+len(silence)+len(chunk)
         # if length < length_limit: # can join if less than 1 min
         #     temp += silence+chunk
-        if length < joint_lenth_limit: # can join if less than 30 s
-            if len(temp+silence+chunk) <length_limit: # if joint length less than 1min, can continue to join
+        if length < joint_lenth_limit: # can join if less than 1 min
+            if len(temp+silence+chunk) <length_limit:
                 temp += silence+chunk
             else:
                 adjust_chunks.append(temp)
@@ -107,11 +107,10 @@ def chunk_join_length_limit(chunks, joint_silence_len=1000,length_limit=60*1000,
 def prepare_for_analysis(name, sound, 
                          silence_thresh=-70, 
                          min_silence_len = 700, 
-                         split_length_limit = 60*1000, 
+                         length_limit = 60*1000, 
                          abandon_chunk_len = 500, 
                          joint_silence_len = 1300,
-                         joint_length_limit = 30*1000,
-                         length_limit = 60*1000,
+                         joint_length_limit = 5*1000,
                          withjoint = True):
     '''
     Args:
@@ -119,11 +118,10 @@ def prepare_for_analysis(name, sound,
         sound: recording file data
         silence_thresh
         min_silence_len
-        split_length_limit
+        length_limit
         abandon_chunk_len
         joint_silence_len
         joint_lenth_limit
-        length_limit
         withjoin
     Return:
         total: return the number of chunks
@@ -131,7 +129,7 @@ def prepare_for_analysis(name, sound,
     
     # split based on sentences, each less than 1 min
     print('start to split\n',' *'*30)
-    chunks = chunk_split_length_limit(sound, silence_thresh=silence_thresh, min_silence_len=min_silence_len, split_length_limit=split_length_limit)
+    chunks = chunk_split_length_limit(sound, silence_thresh=silence_thresh, min_silence_len=min_silence_len, length_limit=length_limit)
     print('split ends. return #chunks:',len(chunks),'\n',' *'*30)
     
     # abandon chunks less than 0.5s
@@ -158,11 +156,10 @@ def prepare_for_analysis(name, sound,
     # save parameters into a .txt file
     hyperparams = f"""silence_thresh: {silence_thresh}
 min_silence_len: {min_silence_len}
-split_length_limit: {split_length_limit}
+length_limit: {length_limit}
 abandon_chunk_len: {abandon_chunk_len}
 joint_silence_len: {joint_silence_len} 
 joint_length_limit: {joint_length_limit}
-length_limit: {length_limit}
 withjoint: {withjoint} \n 
     """
     print('hyperparams: '+hyperparams)
@@ -193,19 +190,17 @@ def audio_segmentation(name,file):
     ## set hyperparameters
     silence_thresh = -40  # lower than -70dBFS --> silence
     min_silence_len = 900  #  if silence exceeds 700ms then split
-    split_length_limit = 300*1000  # when split, each chunk cannot be more than 30 s
-    abandon_chunk_len = 500  # abandon the chunk less than 500ms
+    length_limit = 60*1000  # if split, each chunk cannot be more than 30 s
+    abandon_chunk_len = 0  # abandon the chunk less than 500ms
     joint_silence_len = 0  # add 1300ms interval when joining the chunks
     joint_lenth_limit = 60*1000
-    length_limit = 300*1000
     withjoint = True
     
     ## output
-    total_chunks, nowtime = prepare_for_analysis(name, sound, silence_thresh, min_silence_len, split_length_limit, abandon_chunk_len, joint_silence_len, joint_lenth_limit, length_limit, withjoint)
+    total_chunks, nowtime = prepare_for_analysis(name, sound, silence_thresh, min_silence_len, length_limit, abandon_chunk_len, joint_silence_len, joint_lenth_limit, withjoint)
     # print(total_chunks)
     
     return total_chunks, nowtime
-
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #                              Split By Time                              #
@@ -227,6 +222,3 @@ def get_second_part_wav(main_wav_file, start_time, end_time, part_wav_file):
     word = sound[start_time:end_time]
 
     word.export(part_wav_file, format="wav")
-
-
-

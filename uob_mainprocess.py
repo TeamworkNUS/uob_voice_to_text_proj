@@ -7,15 +7,18 @@ Version     Date    Change_by   Description
 '''
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-from datetime import datetime
 import soundfile as sf
+import wave
+import json
 import malaya_speech
 from pyannote.audio import Pipeline
 
+
 import os
 import numpy as np
+from datetime import datetime
 
-import uob_noisereduce, uob_speakerdiarization, uob_audiosegmentation
+import uob_noisereduce, uob_speakerdiarization, uob_audiosegmentation, uob_stt
 
 def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, vad_model=None, sv_model=None, pipeline=None, chunks:bool=True, reducenoise:bool=False, sd_proc='pyannoteaudio'):
     ## Reduce noise
@@ -53,9 +56,10 @@ def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, vad_model=
 
     return sd_result
 
-
-
-
+def stt_process(slices_path, rec):
+    # TODO: standardize audios for VOSK STT conversion
+    stt_result = uob_stt.stt_conversion_vosk(slices_path, rec)
+    return stt_result
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #                                       Functions                                     #
@@ -100,9 +104,9 @@ def malaya_sd(y, sr, audioname, audiopath, vad_model, sv_model):
     # ?: choose a SD function below, comment others
     # result_sd = uob_speakerdiarization.speaker_similarity(speaker_vector, grouped_vad)
     # result_sd = uob_speakerdiarization.affinity_propagation(speaker_vector, grouped_vad)
-    # result_sd = uob_speakerdiarization.spectral_clustering(speaker_vector, grouped_vad, min_clusters=2, max_clusters=3) #!p_percentile issue
-    result_sd = uob_speakerdiarization.n_speakers_clustering(speaker_vector, grouped_vad, n_speakers=2, model='kmeans') #['spectralcluster','kmeans']
-    # result_sd = uob_speakerdiarization.speaker_change_detection(grouped_vad, y, sr,frame_duration_ms=500, 
+    result_sd = uob_speakerdiarization.spectral_clustering(speaker_vector, grouped_vad, min_clusters=2, max_clusters=3) #!p_percentile issue
+    # result_sd = uob_speakerdiarization.n_speakers_clustering(speaker_vector, grouped_vad, n_speakers=3, model='kmeans') #['spectralcluster','kmeans']
+    # result_sd = uob_speakerdiarization.speaker_change_detection(speaker_vector, grouped_vad, y, sr,frame_duration_ms=500, 
     #                                                           min_clusters = 2, max_clusters = 3) #!p_percentile issue
     
     
@@ -194,3 +198,6 @@ def cut_audio_by_timestamps(start_end_list:list, audioname, audiofile, part_path
         part_file = part_path + '/' + part_name
         
         uob_audiosegmentation.get_second_part_wav(audiofile, start, end, part_file)
+        
+
+

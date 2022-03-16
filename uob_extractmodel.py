@@ -25,6 +25,8 @@ from malaya_speech.model.tf import (
     Classification,
 )
 
+from vosk import Model, KaldiRecognizer, SetLogLevel
+
 from init import pretrained_model_path
 import uob_noisereduce, uob_speakerdiarization  #for test
 
@@ -339,7 +341,7 @@ def get_model_speaker_change(pretrained_model_path = pretrained_model_path, mode
         )
 
     ## Declare model file
-    module='speaker_change'
+    module='speaker-change'
     path = pretrained_model_path
     if quantized:
         path = os.path.join(module, f'{model}-quantized')
@@ -371,6 +373,7 @@ def get_model_speaker_change(pretrained_model_path = pretrained_model_path, mode
     }
 
     model_object = load(
+        modelfile=modelfile,
         model=model,
         module=module,
         extra=settings[model],
@@ -381,6 +384,13 @@ def get_model_speaker_change(pretrained_model_path = pretrained_model_path, mode
     
     return model_object
 
+
+def get_model_stt_vosk(pretrained_model_path=pretrained_model_path, sr=16000):
+    # sample_rate=sr
+    model = Model(pretrained_model_path) #Model("model")
+    rec = KaldiRecognizer(model, sr)
+    
+    return model, rec
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #                                        Utils                                        #
