@@ -56,9 +56,9 @@ def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, vad_model=
 
     return sd_result
 
-def stt_process(slices_path, rec):
+def stt_process(slices_path, rec, sr):
     # TODO: standardize audios for VOSK STT conversion
-    stt_result = uob_stt.stt_conversion_vosk(slices_path, rec)
+    stt_result = uob_stt.stt_conversion_vosk(slices_path, rec, sr)
     return stt_result
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 

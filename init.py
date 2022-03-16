@@ -6,5 +6,7 @@ AUDIO_NAME = 'Bdb001_interaction_first60s.wav' #'LE_listening_B1_A_phone_call_fr
 AUDIO_PATH = './wav/'
 AUDIO_FILE = os.path.join(AUDIO_PATH,AUDIO_NAME)
 SAMPLE_RATE = 44100
+STT_SAMPLERATE = 16000
+
 
 sd_global_starttime = 0.0

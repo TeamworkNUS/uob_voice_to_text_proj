@@ -28,6 +28,7 @@ from init import (
     AUDIO_PATH,
     AUDIO_FILE,
     SAMPLE_RATE,
+    STT_SAMPLERATE,
     sd_global_starttime
 )
 
@@ -209,12 +210,11 @@ print('*'*30, 'Cut Slices Done')
 
 ###  Speech to Text Conversion
 ## Load VOSK model
-sampleRate = 16000
-stt_model_vosk_rec = uob_stt.load_stt_model(stt_model='vosk',pretrained_model_path=os.path.join(pretrained_model_path,'stt/model'), sr=sampleRate) # TODO: what's the sample rate?
+stt_model_vosk_rec = uob_stt.load_stt_model(stt_model='vosk',pretrained_model_path=os.path.join(pretrained_model_path,'stt/model'), sr=STT_SAMPLERATE) # TODO: what's the sample rate?
 ## STT start
 print('*'*30)
 print('STT Conversion Start')
-stt = uob_mainprocess.stt_process(slices_path=slices_path, rec=stt_model_vosk_rec,sampleRate)
+stt = uob_mainprocess.stt_process(slices_path=slices_path, rec=stt_model_vosk_rec,sr = STT_SAMPLERATE)
         
 # print(stt)
 # print(final_sd_result)

@@ -2,11 +2,12 @@ import os
 import pandas as pd
 import wave
 import json
-
+import subprocess
 import uob_extractmodel
 from init import (
     SAMPLE_RATE,
-    pretrained_model_path
+    pretrained_model_path,
+    STT_SAMPLERATE
 )
 
 def load_stt_model(stt_model='vosk', pretrained_model_path=pretrained_model_path, sr=SAMPLE_RATE):
@@ -15,7 +16,7 @@ def load_stt_model(stt_model='vosk', pretrained_model_path=pretrained_model_path
         return rec
 
 
-def stt_conversion_vosk(slices_path, rec):
+def stt_conversion_vosk(slices_path, rec, sr = STT_SAMPLERATE):
     transcription = []
 
     stt = pd.DataFrame(columns=['index', 'text'])
@@ -24,11 +25,19 @@ def stt_conversion_vosk(slices_path, rec):
             namef, namec = os.path.splitext(filename)
             namef_other, namef_index = namef.rsplit("_", 1)
             namef_index = int(namef_index)
+
+            inputFile = slices_path+"/"+filename
+            process = subprocess.Popen(['ffmpeg', '-loglevel', 'quiet', '-i',
+                            # os.listdir("./audio/")[0],
+                            inputFile,
+                            '-ar', str(sr) , '-ac', '1', '-f', 's16le', '-'],
+                            stdout=subprocess.PIPE)
             
-            wf = wave.open(slices_path+"/"+filename, "rb")   # Change when confirm
+            # wf = wave.open(slices_path+"/"+filename, "rb")   # Change when confirm
             # file = slices_path+"/"+filename
             while True:
-                data = wf.readframes(10000000)
+                data = process.stdout.read(10000000)
+                # data = wf.readframes(10000000)
                 if len(data) == 0:
                     break
                 if rec.AcceptWaveform(data):
