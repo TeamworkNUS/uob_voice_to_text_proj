@@ -23,7 +23,15 @@ Meanwhile, comment/uncomment below highlighted line accordingly. (Comment when u
  
  3. For error with package "pyemd" may meet, please read doc "pyemd_problem_solution.docx".
  
- 4. unzipped "punkt.zip" in path C:\Users\《youraccount》\AppData\Roaming\nltk_data\tokenizers
+ 4. Need to download "punkt" from nltk package, can enter:
+ 
+ python -c "import nltk; nltk.download('punkt')"
+ 
+ in cmd
+ 
+ OR
+ 
+ unzipped "punkt.zip" in path C:\Users\《youraccount》\AppData\Roaming\nltk_data\tokenizers
  
  may need create new folder 'tokenizers', make sure the final path of punkt folder is:
  
