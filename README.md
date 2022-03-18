@@ -20,8 +20,16 @@ Meanwhile, comment/uncomment below highlighted line accordingly. (Comment when u
 2.	SD models in Malaya-speech
 ‘malaya-speech’ package has many speaker diarization pretrained models. You can setup which model to be used in ‘uob_mainprocess.py’ by simply comment/uncomment the codes.
  
-
-
+ 
+ 3. For error with package "pyemd" may meet, please read doc "pyemd_problem_solution.docx".
+ 
+ 4. unzipped "punkt.zip" in path C:\Users\《youraccount》\AppData\Roaming\nltk_data\tokenizers
+ 
+ may need create new folder 'tokenizers', make sure the final path of punkt folder is:
+ 
+ C:\Users\《youraccount》\AppData\Roaming\nltk_data\tokenizers\punkt
+ 
+ E.g. C:\Users\hp\AppData\Roaming\nltk_data\tokenizers\punkt
 
 
 
