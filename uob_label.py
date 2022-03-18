@@ -48,8 +48,8 @@ def speaker_label_func(input, pretrained_model_path, checklist_path):
 
     # load data
     # input = pd.read_csv("output_3.csv")
-    text0 = [w for l in input['text'][input['speaker_label']=='speaker 0'].astype(str) for w in preprocess(l)]
-    text1 = [w for l in input['text'][input['speaker_label']=='speaker 1'].astype(str) for w in preprocess(l)]
+    text0 = [w for l in input['text'][input['speaker_label'].astype(str).str.endswith('0')] for w in preprocess(l)]
+    text1 = [w for l in input['text'][input['speaker_label'].astype(str).str.endswith('1')] for w in preprocess(l)]
 
     # Calculate similarity
     distance0 = wv_model.wv.wmdistance(text0, template)
@@ -59,12 +59,12 @@ def speaker_label_func(input, pretrained_model_path, checklist_path):
 
     # identify
     if distance0 < distance1:
-        input.loc[input['speaker_label']=='speaker 0','label'] = 'Agent'
-        input.loc[input['speaker_label']=='speaker 1','label'] = 'Customer'
+        input.loc[input['speaker_label'].astype(str).str.endswith('0'),'label'] = 'Agent'
+        input.loc[input['speaker_label'].astype(str).str.endswith('1'),'label'] = 'Customer'
         print('speaker0 is Agent')
     elif distance0 > distance1:
-        input.loc[input['speaker_label']=='speaker 1','label'] = 'Agent'
-        input.loc[input['speaker_label']=='speaker 0','label'] = 'Customer'
+        input.loc[input['speaker_label'].astype(str).str.endswith('1'),'label'] = 'Agent'
+        input.loc[input['speaker_label'].astype(str).str.endswith('0'),'label'] = 'Customer'
         print('speaker1 is Agent')
     else:
         print('cannot identify')
