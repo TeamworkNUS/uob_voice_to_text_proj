@@ -18,7 +18,7 @@ import os
 import numpy as np
 from datetime import datetime
 
-import uob_noisereduce, uob_speakerdiarization, uob_audiosegmentation, uob_stt, uob_label
+import uob_noisereduce, uob_speakerdiarization, uob_audiosegmentation, uob_stt, uob_label, uob_save_result_to_mysql
 
 def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, vad_model=None, sv_model=None, pipeline=None, chunks:bool=True, reducenoise:bool=False, sd_proc='pyannoteaudio'):
     ## Reduce noise
@@ -64,6 +64,9 @@ def stt_process(slices_path, rec, sr):
 def speaker_label_func(transactionDf, pretrained_model_path, checklist_path):
     label_result = uob_label.speaker_label_func(transactionDf, pretrained_model_path, checklist_path)
     return label_result
+
+def dbInsert_func(finalDf, slices_path):
+    uob_save_result_to_mysql.dbInsert(finalDf, slices_path)
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #                                       Functions                                     #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -201,6 +204,3 @@ def cut_audio_by_timestamps(start_end_list:list, audioname, audiofile, part_path
         part_file = part_path + '/' + part_name
         
         uob_audiosegmentation.get_second_part_wav(audiofile, start, end, part_file)
-        
-
-

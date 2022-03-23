@@ -9,5 +9,8 @@ SAMPLE_RATE = 44100
 STT_SAMPLERATE = 16000
 label_stop_words = 'nan'
 label_checklist = 'checklist.txt'
+temSdPath = '/Users/ruiqianli/Desktop/UOB internship/Speaker_diarization'
+dbName = 'UOBtests'
+dbPwd = 'password'
 
 sd_global_starttime = 0.0

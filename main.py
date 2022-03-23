@@ -131,7 +131,7 @@ if chunksfolder != '':
                                                 pipeline=pa_pipeline,
                                                 chunks=True, #fixed
                                                 reducenoise=False,
-                                                sd_proc='malaya')  # ?: [pyannoteaudio, malaya]
+                                                sd_proc='pyannoteaudio')  # ?: [pyannoteaudio, malaya]
             
             
             # ### * Cut audio by SD result
@@ -171,7 +171,7 @@ else:
                                         pipeline=pa_pipeline,
                                         chunks=False, #fixed
                                         reducenoise=False, 
-                                        sd_proc='malaya')  # ?: [pyannoteaudio, malaya]
+                                        sd_proc='pyannoteaudio')  # ?: [pyannoteaudio, malaya]
     
     # ### * Cut audio by SD result
     # namef, namec = os.path.splitext(AUDIO_NAME)
@@ -208,7 +208,6 @@ if not os.path.exists(slices_path):
 uob_mainprocess.cut_audio_by_timestamps(start_end_list=tem_sd_result, audioname=AUDIO_NAME, audiofile=AUDIO_FILE, part_path=slices_path)
 print('*'*30, 'Cut Slices Done')
 
-
 ###  Speech to Text Conversion
 ## Load VOSK model
 stt_model_vosk_rec = uob_stt.load_stt_model(stt_model='vosk',pretrained_model_path=os.path.join(pretrained_model_path,'stt/model'), sr=STT_SAMPLERATE) # TODO: what's the sample rate?
@@ -234,11 +233,14 @@ print("Speaker Labelling Done")
 # print(stt)
 # print(final_sd_result)
 print(final)
-final.to_csv('output.csv')
+final.to_csv(os.path.splitext(AUDIO_NAME)[0] + '_output.csv')
 
-
-
-
+### Store output to database
+# print('*'*30)
+# print("Insert Output to Database Start")
+# uob_mainprocess.dbInsert_func(final, slices_path)
+# print('*'*30)
+# print("Insert Output to Database Done")
 
 # Clear variables
 sd_global_starttime = 0.0

@@ -21,3 +21,5 @@ gensim==4.1.2
 pyemd==0.5.1
 
 numpy==1.21.5
+
+cryptography==36.0.2
