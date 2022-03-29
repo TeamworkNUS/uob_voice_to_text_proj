@@ -26,17 +26,25 @@ def audio2wav(from_audioname, from_audiopath, to_audioname, to_audiopath):
 
 
 def get_audio_params(audioname, audiopath):
+    '''
+    Note: only works on .wav file
+    '''
     audiofile = os.path.join(audiopath, audioname)
     f=wave.open(audiofile)
     params = f.getparams()
     channels = f.getnchannels()
     samplerate = f.getframerate()
+    sampwidth = f.getsampwidth()
+    nframes = f.getnframes()
+    f.close()
 
     print('params: ',params)
-    print('channels: ',channels)
-    print('sample rate: ', samplerate)
+    # print('channels: ',channels)
+    # print('sample rate: ', samplerate)
+    # print('sample width: ', sampwidth)
+    # print('nframes: ', nframes)
     
-    return params, channels, samplerate
+    return params, channels, samplerate, sampwidth, nframes
 
 
 
@@ -50,9 +58,10 @@ def standardize_audio(from_audioname, from_audiopath, to_audioname, to_audiopath
     from_audiofile = os.path.join(from_audiopath,from_audioname)
     to_audiofile = os.path.join(to_audiopath,to_audioname)
     
-    cmd = "ffmpeg -i " + str(from_audiofile) + " -hide_banner " +" -ac " + str(no_of_channel) + " -ar " + str(sample_rate) +' ' + to_audiofile
+    # cmd = "ffmpeg -i " + str(from_audiofile) + " -hide_banner " +" -ac " + str(no_of_channel) + " -ar " + str(sample_rate) +' ' + to_audiofile
+    # print(cmd)
+    # os.system(cmd)
     
-    print(cmd)
-    os.system(cmd)
+    AudioSegment.from_wav(from_audiofile).set_frame_rate(sample_rate).set_channels(no_of_channel).export(to_audiofile,format='wav')
     
 

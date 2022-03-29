@@ -15,6 +15,8 @@ from pyannote.audio import Pipeline as pa_Pipeline
 from sklearn.cluster import KMeans, SpectralClustering
 import speechbrain
 import os
+import pandas as pd
+from resemblyzer.hparams import *
 
 import uob_extractmodel
 
@@ -129,7 +131,7 @@ def speaker_change_detection( speaker_vector, grouped_vad, y, sr,
                              frame_duration_ms=500, min_clusters = 2, max_clusters = 5):
         
     # speakernet = malaya_speech.speaker_change.deep_model('speakernet')
-    speakernet = uob_extractmodel.get_model_speaker_change(model='speakernet')
+    speakernet = uob_extractmodel.get_model_speaker_change(model='speakernet') #TODO: to move to main.py?
     frames_speaker_change = list(malaya_speech.utils.generator.frames(y, frame_duration_ms, sr))
     probs_speakernet = [(frame, speakernet.predict_proba([frame])[0, 1]) for frame in frames_speaker_change] # !: check function 'predict_proba' for all models.-->'Speaker2Vec' object has no attribute 'predict_proba'
     
@@ -176,10 +178,57 @@ def visualization_sd(y, grouped_vad, sr, result_diarization):
 def pyannoteaudio_speaker_diarization(audiofile, pipeline):
     # pipeline = pa_Pipeline.from_pretrained('pyannote/speaker-diarization')
     own_file = {'audio': audiofile}
-    diarization_result = pipeline(own_file)
+    diarization_result = pipeline(own_file, num_speakers=2)
     # print(diarization_result)  # TODO: comment
     # diarization_result #--> Can only visualize in notebook
     # for turn, xxx, speaker in diarization_result.itertracks(yield_label=True):
     #     # speaker speaks between turn.start and turn.end
     #     print(turn.start,turn.end,xxx,speaker)
     return diarization_result
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+#                                    Resemblyzer                                      #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+def resemblyzer_speaker_diarization(cont_embeds, wav_splits) -> pd.DataFrame:
+    ###### Spectral Clustering
+
+    from spectralcluster import SpectralClusterer
+
+    clusterer = SpectralClusterer(
+        min_clusters=2,
+        max_clusters=2,
+        # p_percentile=0.85,   #Latest SpectralCluster package removes this two params.
+        # gaussian_blur_sigma=1
+        )
+
+    labels = clusterer.predict(cont_embeds)
+
+    ##### Arranging the vectors as per the time windows and labels
+
+    def create_labelling(labels, wav_splits):
+        # from resemblyzer import sampling_rate
+        times = [((s.start + s.stop) / 2) / sampling_rate for s in wav_splits]
+        labelling = []
+        start_time = 0
+
+        for i, time in enumerate(times):
+            if i > 0 and labels[i] != labels[i - 1]:
+                temp = [str(labels[i - 1]), start_time, time]
+                labelling.append(tuple(temp))
+                start_time = time
+            if i == len(times) - 1:
+                temp = [str(labels[i]), start_time, time]
+                labelling.append(tuple(temp))
+
+        return labelling
+
+    labelling = create_labelling(labels, wav_splits)
+
+    ###### Creating Data Frame for Speaker Identification
+
+    # df = pd.DataFrame(labelling, columns=['Speaker', 'Start_Time', 'End_Time'])
+    df = pd.DataFrame(labelling, columns=['speaker_label', 'starttime', 'endtime'])
+
+    return df

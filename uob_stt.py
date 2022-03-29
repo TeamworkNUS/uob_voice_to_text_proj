@@ -10,7 +10,7 @@ from init import (
     STT_SAMPLERATE
 )
 
-def load_stt_model(stt_model='vosk', pretrained_model_path=pretrained_model_path, sr=SAMPLE_RATE):
+def load_stt_model(stt_model='vosk', pretrained_model_path=pretrained_model_path, sr=STT_SAMPLERATE):
     if stt_model=='vosk':
         model, rec = uob_extractmodel.get_model_stt_vosk(pretrained_model_path=pretrained_model_path, sr=sr)
         return rec
@@ -19,7 +19,7 @@ def load_stt_model(stt_model='vosk', pretrained_model_path=pretrained_model_path
 def stt_conversion_vosk(slices_path, rec, sr = STT_SAMPLERATE):
     transcription = []
 
-    stt = pd.DataFrame(columns=['index', 'text'])
+    stt = pd.DataFrame(columns=['index', 'text','slice_wav_file_name'])
     for filename in os.listdir(slices_path+"/"): #(slices_path+"/"):
         if filename.endswith(".wav"): 
             namef, namec = os.path.splitext(filename)
@@ -52,13 +52,11 @@ def stt_conversion_vosk(slices_path, rec, sr = STT_SAMPLERATE):
 
             # merge or join all list elements to one big string
             transcription_text = ' '.join(transcription)
-            print(transcription_text)  # For output check only, remove after confirm.
+            # print(transcription_text)  # For output check only, remove after confirm.
 
-            stt.loc[len(stt)] = [namef_index, transcription_text]
+            stt.loc[len(stt)] = [namef_index, transcription_text,filename]
             transcription_text = ""
             transcription = []
 
            
-    # print(stt)
-    # stt.to_csv('output.csv')
     return stt
