@@ -127,3 +127,36 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+pretrained-model/stt/model/am/final.mdl
+pretrained-model/stt/model/am/tree
+pretrained-model/stt/model/conf/mfcc.conf
+pretrained-model/stt/model/conf/model.conf
+pretrained-model/stt/model/graph/disambig_tid.int
+pretrained-model/stt/model/graph/HCLG.fst
+pretrained-model/stt/model/graph/num_pdfs
+pretrained-model/stt/model/graph/phones.txt
+pretrained-model/stt/model/graph/phones/align_lexicon.int
+pretrained-model/stt/model/graph/phones/align_lexicon.txt
+pretrained-model/stt/model/graph/phones/disambig.int
+pretrained-model/stt/model/graph/phones/disambig.txt
+pretrained-model/stt/model/graph/phones/optional_silence.csl
+pretrained-model/stt/model/graph/phones/optional_silence.int
+pretrained-model/stt/model/graph/phones/optional_silence.txt
+pretrained-model/stt/model/graph/phones/silence.csl
+pretrained-model/stt/model/graph/phones/word_boundary.int
+pretrained-model/stt/model/graph/phones/word_boundary.txt
+pretrained-model/stt/model/graph/words.txt
+pretrained-model/stt/model/ivector/final.dubm
+pretrained-model/stt/model/ivector/final.ie
+pretrained-model/stt/model/ivector/final.mat
+pretrained-model/stt/model/ivector/global_cmvn.stats
+pretrained-model/stt/model/ivector/online_cmvn.conf
+pretrained-model/stt/model/ivector/splice.conf
+pretrained-model/stt/model/README
+pretrained-model/stt/model/rescore/G.carpa
+pretrained-model/stt/model/rescore/G.fst
+pretrained-model/stt/model/rnnlm/feat_embedding.final.mat
+pretrained-model/stt/model/rnnlm/final.raw
+pretrained-model/stt/model/rnnlm/special_symbol_opts.conf
+pretrained-model/stt/model/rnnlm/special_symbol_opts.txt
+pretrained-model/stt/model/rnnlm/word_feats.txt
