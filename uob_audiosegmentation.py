@@ -64,7 +64,7 @@ def chunk_split_length_limit(chunk,min_silence_len=700,length_limit=60*1000,sile
             msg = 'in splitting   length, remain[silence len, dbs]: %d,%d[%d,%d]'%(len(temp_chunk),len(todo_arr),temp_msl,temp_st)
             print(msg)
             # splits
-            temp_chunks = split_on_silence(temp_chunk,min_silence_len=temp_msl,silence_thresh=temp_st)
+            temp_chunks = split_on_silence(temp_chunk,min_silence_len=temp_msl,silence_thresh=temp_st,keep_silence=True) #tongtong
             # split result process
             doing_arr = [[c,temp_msl,temp_st] for c in temp_chunks]
             todo_arr = doing_arr+todo_arr
@@ -87,14 +87,14 @@ def chunk_join_length_limit(chunks, joint_silence_len=1000,length_limit=60*1000,
     temp = AudioSegment.empty()
     for chunk in chunks:
         length = len(temp)+len(silence)+len(chunk)
-        # if length < length_limit: # can join if less than 1 min
-        #     temp += silence+chunk
-        if length < joint_lenth_limit: # can join if less than 1 min
-            if len(temp+silence+chunk) <length_limit:
-                temp += silence+chunk
-            else:
-                adjust_chunks.append(temp)
-                temp = chunk
+        if length < length_limit: # can join if less than 1 min
+            temp += silence+chunk
+        # if length < joint_lenth_limit: # can join if less than 1 min
+            # if len(temp+silence+chunk) <length_limit:
+                # temp += silence+chunk
+            # else:
+                # adjust_chunks.append(temp)
+                # temp = chunk
         else: # if more than 1 min, 1. save previous one, 2. restart accumulate
             adjust_chunks.append(temp)
             temp = chunk
@@ -104,7 +104,7 @@ def chunk_join_length_limit(chunks, joint_silence_len=1000,length_limit=60*1000,
 
 
 
-def prepare_for_analysis(name, sound, 
+def prepare_for_analysis(name, sound, savetime,
                          silence_thresh=-70, 
                          min_silence_len = 700, 
                          length_limit = 60*1000, 
@@ -146,12 +146,14 @@ def prepare_for_analysis(name, sound,
     
     # process save path and name
     # if not os.path.exists('./chunks'): os.mkdir('./chunks')
-    nowtime = datetime.now().strftime("%Y%m%d_%H%M%S")
-    if not os.path.exists(AUDIO_PATH +'chunks_'+name[:5]+'_'+nowtime): 
-        os.mkdir(AUDIO_PATH +'chunks_'+name[:5]+'_'+nowtime)
+    # nowtime = datetime.now().strftime("%Y%m%d_%H%M%S")
+    nowtime = savetime.strftime("%Y%m%d_%H%M%S")
     namef, namec = os.path.splitext(name)
     namec = namec[1:]
     print('namef: '+ namef + '; namec: '+namec)
+    chunks_folder = AUDIO_PATH +'chunks_'+namef+'_'+nowtime
+    if not os.path.exists(chunks_folder): 
+        os.mkdir(chunks_folder)
     
     # save parameters into a .txt file
     hyperparams = f"""silence_thresh: {silence_thresh}
@@ -163,7 +165,7 @@ joint_length_limit: {joint_length_limit}
 withjoint: {withjoint} \n 
     """
     print('hyperparams: '+hyperparams)
-    with open(AUDIO_PATH +'chunks_'+name[:5]+'_'+nowtime+'/'+"hyperparams.txt","a") as f:  # TODO: setup the path to save paramters
+    with open(chunks_folder+"/hyperparams.txt","a") as f:  # TODO: setup the path to save paramters
         f.write(hyperparams)
     
     
@@ -173,14 +175,14 @@ withjoint: {withjoint} \n
         new = chunks[i]
         save_name = '%s_%04d.%s'%(namef,i,namec)
         print(save_name)
-        new.export(AUDIO_PATH +'chunks_'+name[:5]+'_'+nowtime+'/'+save_name, format=namec)
+        new.export(chunks_folder+'/'+save_name, format=namec)
     print('save done')
     
-    return total, nowtime
+    return total, nowtime, chunks_folder
         
 
 
-def audio_segmentation(name,file):
+def audio_segmentation(name,file,savetime):
     ## loading
     # name = 'Bdb001_interaction.wav'
     sound = AudioSegment.from_wav(file)
@@ -189,18 +191,18 @@ def audio_segmentation(name,file):
     
     ## set hyperparameters
     silence_thresh = -40  # lower than -70dBFS --> silence
-    min_silence_len = 900  #  if silence exceeds 700ms then split
-    length_limit = 60*1000  # if split, each chunk cannot be more than 30 s
+    min_silence_len = 700  #  if silence exceeds 700ms then split
+    length_limit = 600*1000  # if split, each chunk cannot be more than 30 s
     abandon_chunk_len = 0  # abandon the chunk less than 500ms
     joint_silence_len = 0  # add 1300ms interval when joining the chunks
     joint_lenth_limit = 60*1000
     withjoint = True
     
     ## output
-    total_chunks, nowtime = prepare_for_analysis(name, sound, silence_thresh, min_silence_len, length_limit, abandon_chunk_len, joint_silence_len, joint_lenth_limit, withjoint)
+    total_chunks, nowtime, chunks_folder = prepare_for_analysis(name, sound, savetime, silence_thresh, min_silence_len, length_limit, abandon_chunk_len, joint_silence_len, joint_lenth_limit, withjoint)
     # print(total_chunks)
     
-    return total_chunks, nowtime
+    return total_chunks, nowtime, chunks_folder
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #                              Split By Time                              #
