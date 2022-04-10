@@ -25,9 +25,9 @@ import os
 import numpy as np
 from datetime import datetime
 
-import uob_noisereduce, uob_speakerdiarization, uob_audiosegmentation, uob_stt, uob_speechenhancement, uob_label, uob_storage
+import uob_noisereduce, uob_speakerdiarization, uob_audiosegmentation, uob_stt, uob_speechenhancement, uob_label, uob_storage, uob_superresolution
 
-def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, se_model=None, vad_model=None, sv_model=None, pipeline=None, chunks:bool=True, reducenoise:bool=False, speechenhance:bool=False, sd_proc='pyannoteaudio'):
+def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, se_model=None, sr_model=None, vad_model=None, sv_model=None, pipeline=None, chunks:bool=True, reducenoise:bool=False, speechenhance:bool=False, superresolution:bool=False, sd_proc='pyannoteaudio'):
     ## Reduce noise
     if reducenoise == True:
         ## load nr models
@@ -67,6 +67,37 @@ def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, se_model=N
             sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
         
     
+    ## Super Resolution
+    if superresolution == True:
+        #! 1.Currently we only supported 4x super resolution, if input sample rate is 16k, output will become 16k * 4.
+        #! 2.We trained on 11025 for input sample rate, 44100 for output sample rate.
+        reduction_factor = 4
+        y_, sr_ = malaya_speech.load(os.path.join(audiopath,audioname), sr = sr // reduction_factor)
+        y = malaya_super_resolution(y_, sr_, sr_model=sr_model)
+        # y = malaya_super_resolution(y, sr, sr_model=sr_model)
+        
+        if chunks:
+            namef, namec = os.path.splitext(audioname)
+            namef_other, namef_index = namef.rsplit("_", 1)
+            namef_index = int(namef_index)
+            namec = namec[1:]
+            audioname = '%s_%04d.%s'%(namef_other+'_sr',namef_index,namec)
+            sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
+        else:
+            namef, namec = os.path.splitext(audioname)
+            namec = namec[1:]
+            audioname = '%s.%s'%(namef+'_sr',namec)
+            sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?        
+    
+    if chunks:
+        audiopath = audiopath + '_processed'
+        if not os.path.exists(audiopath): 
+            os.mkdir(audiopath)
+        sf.write(os.path.join(audiopath,audioname), y, sr)
+    else:
+        sf.write(os.path.join(audiopath,audioname), y, sr)
+    print('audiopath: ',audiopath)
+    
     ## Speaker Diarization
     if sd_proc == 'malaya':
         sd_result = malaya_sd(y, sr, audioname, audiopath, vad_model, sv_model)
@@ -81,21 +112,30 @@ def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, se_model=N
     # ## Delete reduced noise temp file
     # if os.path(audiopath+'/noisereduced.wav'):
     #     os.remove(audiopath+'/noisereduced.wav')
-    
+
+    ## Add chunk filename
+    if chunks == True:
+        for row in sd_result:
+            row.append(audioname)
+    else:
+        for row in sd_result:
+            row.append("")
+
 
     return sd_result
 
-def stt_process(slices_path, rec, sr):
-    # TODO: standardize audios for VOSK STT conversion
-    stt_result = uob_stt.stt_conversion_vosk(slices_path, rec, sr)
+def stt_process(sttModel, slices_path, rec, sr):
+    if sttModel == 'vosk':
+        stt_result = uob_stt.stt_conversion_vosk(slices_path, rec, sr)
+    elif sttModel == 'malaya-speech':
+        stt_result = uob_stt.stt_conversion_malaya_speech(slices_path, rec)
     return stt_result
 
 def speaker_label_func(transactionDf, pretrained_model_path, checklist_path):
     label_result = uob_label.speaker_label_func(transactionDf, pretrained_model_path, checklist_path)
     return label_result
 
-def dbInsertSTT_func(finalDf, orig_path, processed_path, slices_path):
-    uob_storage.dbInsertSTT(finalDf, orig_path, processed_path, slices_path)
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #                                       Functions                                     #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -124,6 +164,13 @@ def malaya_speech_enhance(y, sr, se_model):
     return y
     
     
+def malaya_super_resolution(y, sr, sr_model):
+    ### * Convert to Super Resolution Audio
+    superresolution_audio =uob_superresolution.get_sr_output(y, sr, sr_model)
+    y = superresolution_audio
+    return y    
+
+
 def malaya_sd(y, sr, audioname, audiopath, vad_model, sv_model):  
     '''
     INPUT
@@ -151,7 +198,7 @@ def malaya_sd(y, sr, audioname, audiopath, vad_model, sv_model):
     #                                                           min_clusters = 2, max_clusters = 2) #!p_percentile issue
     
     ## Visualization #TODO: to comment for production
-    # uob_speakerdiarization.visualization_sd(y, grouped_vad, sr, result_sd)
+    uob_speakerdiarization.visualization_sd(y, grouped_vad, sr, result_sd)
     
     
     ## Get timestamp

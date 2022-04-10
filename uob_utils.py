@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Any, Optional
 from pydub import AudioSegment
@@ -65,3 +66,28 @@ def standardize_audio(from_audioname, from_audiopath, to_audioname, to_audiopath
     AudioSegment.from_wav(from_audiofile).set_frame_rate(sample_rate).set_channels(no_of_channel).export(to_audiofile,format='wav')
     
 
+def get_audio_meta(audioname,audiopath):
+
+    audiofile = os.path.join(audiopath, audioname)
+    f=wave.open(audiofile)
+    nframes = f.getnframes()
+    rate = f.getframerate()
+    duration = nframes / float(rate)
+    bytes_size=os.path.getsize(os.path.join(audiopath, audioname))
+    params = f.getparams()
+    nchannels = f.getnchannels()
+    samplerate = f.getframerate()
+    sampwidth = f.getsampwidth()
+    bit_type = f.getsampwidth() * 8
+    bit_rate=samplerate * bit_type * nchannels
+    f.close()
+
+    # print('params: ',params)
+    # print('channels: ',channels)
+    # print('sample rate: ', samplerate)
+    # print('sample width: ', sampwidth)
+    # print('nframes: ', nframes)
+    output_obj = {"nchannels":nchannels,"samplerate":samplerate,"sampwidth":sampwidth,"nframes":nframes, "duration":duration, "bytes_size":bytes_size, "bit_type":bit_type,"bit_rate":round(bit_rate)}
+    output = json.dumps(output_obj)
+    
+    return output

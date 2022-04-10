@@ -3,13 +3,14 @@ import os
 
 pretrained_model_path = './pretrained-model/'
 
-AUDIO_NAME = 'RT048_bankaccount_150-249.wav' #'Bdb001_interaction_first60s.wav'
+AUDIO_NAME = 'Bdb001_interaction_first60s.wav'
 AUDIO_PATH = './wav/'
 AUDIO_FILE = os.path.join(AUDIO_PATH,AUDIO_NAME)
 SAMPLE_RATE = 44100
 STT_SAMPLERATE = 16000
 FLG_REDUCE_NOISE:bool = False
 FLG_SPEECH_ENHANCE:bool = False
+FLG_SUPER_RES:bool = False
 
 label_stop_words = 'nan'
 label_checklist = 'checklist.txt'
@@ -20,7 +21,10 @@ dbUser = 'root'
 dbPwd = 'password'
 
 sd_global_starttime = 0.0
+sttModel = 'vosk' # ? ['malaya-speech', 'vosk']
+sdModel = 'resemblyzer' # ? [pyannoteaudio, malaya, resemblyzer]
 
+flg_slice_orig = True
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #                              Initialization  Processes                              #

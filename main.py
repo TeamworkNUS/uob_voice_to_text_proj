@@ -14,6 +14,7 @@ import pandas as pd
 import shutil
 import subprocess
 import re
+import json
 
 
 import librosa
@@ -23,7 +24,7 @@ from pyannote.audio import Pipeline as pa_Pipeline
 from pydub import AudioSegment
 
 
-import uob_audiosegmentation, uob_noisereduce, uob_speechenhancement, uob_speakerdiarization, uob_stt, uob_mainprocess, uob_utils, uob_label
+import uob_audiosegmentation, uob_noisereduce, uob_speechenhancement, uob_superresolution, uob_speakerdiarization, uob_stt, uob_mainprocess, uob_utils, uob_label, uob_storage
 from init import (
     pretrained_model_path,
     AUDIO_NAME,
@@ -33,7 +34,11 @@ from init import (
     STT_SAMPLERATE,
     FLG_REDUCE_NOISE,
     FLG_SPEECH_ENHANCE,
-    sd_global_starttime
+    FLG_SUPER_RES,
+    sd_global_starttime,
+    sttModel,
+    sdModel,
+    flg_slice_orig
 )
 
 
@@ -95,6 +100,9 @@ nr_model = uob_noisereduce.load_noisereduce_model_local(quantized=False)
 ## Speech Reduce models
 # se_model = uob_speechenhancement.load_speechenhancement_model(model='unet',quantized=True)
 se_model = uob_speechenhancement.load_speechenhancement_model_local(quantized=False)
+## Super Resolution models
+# sr_model = uob_superresolution.load_superresolution_model(quantized=False)
+sr_model = uob_superresolution.load_superresolution_model_local(quantized=False)
 ## Load malaya vad model
 # vad_model_vggvox2 = uob_speakerdiarization.load_vad_model(quantized=False)
 vad_model_vggvox2 = uob_speakerdiarization.load_vad_model_local(quantized=False)
@@ -110,11 +118,11 @@ print('*' * 30)
 
 #### * Segmentation
 chunksfolder = ''
-if audio_duration > 3600:  # segment if longer than 5 min=300s
-    totalchunks, nowtime = uob_audiosegmentation.audio_segmentation(name=AUDIO_NAME,file=AUDIO_FILE)
+if audio_duration > 1800:  # segment if longer than 5 min=300s
+    totalchunks, nowtime, chunksfolder = uob_audiosegmentation.audio_segmentation(name=AUDIO_NAME,file=AUDIO_FILE,savetime=starttime)
     print('  Segmentation Done!!!\n','*' * 30)
-    chunksfolder = 'chunks_'+AUDIO_NAME[:5]+'_'+nowtime  #'./chunks'+nowtime 
-    chunksfolder = os.path.join(AUDIO_PATH, chunksfolder)
+    # chunksfolder = 'chunks_'+AUDIO_NAME[:5]+'_'+nowtime  #'./chunks'+nowtime 
+    # chunksfolder = os.path.join(AUDIO_PATH, chunksfolder)
     print('chunksfolder: ', chunksfolder)
     # num_audio_files = len([n for n in os.listdir(chunksfolder+"/") if n.endswith(".wav")])
     num_audio_files = totalchunks
@@ -125,13 +133,13 @@ print('*' * 30)
 
 
 #### * Process SD
-# chunksfolder = './wav/chunks_The-S_20220309_185316' #'chunks_The-S_20220228_162841'   # * for test
+# chunksfolder = '.\\wav\\chunks_Bdb00_20220330_114451' #'./wav/chunks_The-S_20220309_185316' #'chunks_The-S_20220228_162841'   # * for test
 tem_sd_result = []
 tem_sd_index = 0
 if chunksfolder != '':
     for filename in os.listdir(chunksfolder+"/"):
         if filename.endswith(".wav"): 
-            # print(os.path.join(chunksfolder, filename))
+            print(os.path.join(chunksfolder, filename))
             ### * Load chunk file
             file = os.path.join(chunksfolder, filename)
             # y, sr = malaya_speech.load(file, SAMPLE_RATE)
@@ -146,13 +154,15 @@ if chunksfolder != '':
                                                 audiofile=file,
                                                 nr_model=nr_model,   # ?: [nr_model, nr_quantized_model]
                                                 se_model=se_model,
+                                                sr_model=sr_model,
                                                 vad_model=vad_model_vggvox2,
                                                 sv_model=sv_model_speakernet,    # ?: sv_model_speakernet, sv_model_vggvox2
                                                 pipeline=pa_pipeline,
                                                 chunks=True, #fixed
                                                 reducenoise=FLG_REDUCE_NOISE,
                                                 speechenhance=FLG_SPEECH_ENHANCE,
-                                                sd_proc='resemblyzer')  # ?: [pyannoteaudio, malaya, resemblyzer]
+                                                superresolution=FLG_SUPER_RES,
+                                                sd_proc=sdModel)  # ?: [pyannoteaudio, malaya, resemblyzer]
             
             
             # ### * Cut audio by SD result
@@ -169,9 +179,13 @@ if chunksfolder != '':
                                             row[1]+sd_global_starttime, 
                                             row[2]+sd_global_starttime,
                                             row[3],
-                                            row[4]])
+                                            row[4],
+                                            row[5],
+                                            row[1],
+                                            row[2]])
                     if row[0] == len(sd_result[1:]):
                         sd_global_starttime += row[2]
+                        print(sd_global_starttime)
                     
             
 
@@ -191,13 +205,15 @@ else:
                                         audiofile=AUDIO_FILE,
                                         nr_model=nr_model,   # ?: [nr_model, nr_quantized_model]
                                         se_model=se_model,
+                                        sr_model=sr_model,
                                         vad_model=vad_model_vggvox2,
                                         sv_model=sv_model_speakernet,    # ?: sv_model_speakernet, sv_model_vggvox2
                                         pipeline=pa_pipeline,
                                         chunks=False, #fixed
                                         reducenoise=FLG_REDUCE_NOISE, 
                                         speechenhance=FLG_SPEECH_ENHANCE,
-                                        sd_proc='resemblyzer')  # ?: [pyannoteaudio, malaya, resemblyzer]
+                                        superresolution=FLG_SUPER_RES,
+                                        sd_proc=sdModel)  # ?: [pyannoteaudio, malaya, resemblyzer]
     
     # ### * Cut audio by SD result
     # namef, namec = os.path.splitext(AUDIO_NAME)
@@ -215,17 +231,21 @@ else:
                                     row[1],
                                     row[2],
                                     row[3],
-                                    row[4]])
+                                    row[4],
+                                    row[5],
+                                    0,
+                                    0])
 
 
 
 #### * Process STT
 
-final_sd_result = pd.DataFrame(tem_sd_result, columns=['index','starttime','endtime','duration','speaker_label'])
+final_sd_result = pd.DataFrame(tem_sd_result, columns=['index','starttime','endtime','duration','speaker_label','chunk_filename','chunk_starttime','chunk_endtime'])
 
 ###  Cut audio by SD result
 namef, namec = os.path.splitext(AUDIO_NAME)
-slices_path = AUDIO_PATH + namef + '_slices'  # TODO: where to save slices?
+slices_path = AUDIO_PATH + namef + '_slices_' + starttime.strftime("%Y%m%d_%H%M%S")
+
 try:
     if not os.path.exists(slices_path):
         os.mkdir(slices_path)
@@ -235,51 +255,70 @@ try:
 except Exception as e:
     print('Failed to delete or create slices folder %s. Reason: %s' % (slices_path, e))
 
-if FLG_REDUCE_NOISE == False:
-    if chunksfolder != '':
-        for filename in os.listdir(chunksfolder+"/"):
-            if filename.endswith(".wav"): 
-                uob_mainprocess.cut_audio_by_timestamps(start_end_list=tem_sd_result, audioname=filename, audiofile=os.path.join(chunksfolder,filename), part_path=slices_path)
+# Start to cut
+if chunksfolder != '':
+    if flg_slice_orig == False:
+        for filename in os.listdir(chunksfolder+"_processed/"):
+            tem_sd_result_forSlices = final_sd_result[final_sd_result['chunk_filename']==filename]
+            tem_sd_result_forSlices['index'] = tem_sd_result_forSlices['index'].astype(str)
+            tem_sd_result_forSlices = tem_sd_result_forSlices[['index','chunk_starttime','chunk_endtime']].values.tolist()
+            uob_mainprocess.cut_audio_by_timestamps(start_end_list=tem_sd_result_forSlices, audioname=filename, audiofile=os.path.join(chunksfolder+"_processed/",filename), part_path=slices_path)
     else:
-        uob_mainprocess.cut_audio_by_timestamps(start_end_list=tem_sd_result, audioname=AUDIO_NAME, audiofile=AUDIO_FILE, part_path=slices_path)
-elif FLG_REDUCE_NOISE == True and FLG_SPEECH_ENHANCE == False:
-    if chunksfolder != '':
         for filename in os.listdir(chunksfolder+"/"):
-            if filename.endswith("_nr.wav"): 
-                uob_mainprocess.cut_audio_by_timestamps(start_end_list=tem_sd_result, audioname=filename, audiofile=os.path.join(chunksfolder,filename), part_path=slices_path)
-    else:
-        filename = namef + "_nr.wav"
-        file = os.path.join(AUDIO_PATH, filename)
-        uob_mainprocess.cut_audio_by_timestamps(start_end_list=tem_sd_result, audioname=filename, audiofile=file, part_path=slices_path)
-elif FLG_REDUCE_NOISE == True and FLG_SPEECH_ENHANCE == True:
-    if chunksfolder != '':
-        for filename in os.listdir(chunksfolder+"/"):
-            if filename.endswith("_nr_se.wav"): 
-                uob_mainprocess.cut_audio_by_timestamps(start_end_list=tem_sd_result, audioname=filename, audiofile=os.path.join(chunksfolder,filename), part_path=slices_path)
-    else:
-        filename = namef + "_nr_se.wav"
-        file = os.path.join(AUDIO_PATH, filename)
-        uob_mainprocess.cut_audio_by_timestamps(start_end_list=tem_sd_result, audioname=filename, audiofile=file, part_path=slices_path)
+            if re.match('^(%s_)(\d{4})'%(namef), filename):
+                tem_sd_result_forSlices = final_sd_result[final_sd_result['chunk_filename'].str[-8:]==filename[-8:]]
+                tem_sd_result_forSlices['index'] = tem_sd_result_forSlices['index'].astype(str)
+                tem_sd_result_forSlices = tem_sd_result_forSlices[['index','chunk_starttime','chunk_endtime']].values.tolist()
+                print(tem_sd_result_forSlices)
+                uob_mainprocess.cut_audio_by_timestamps(start_end_list=tem_sd_result_forSlices, audioname=filename, audiofile=os.path.join(chunksfolder,filename), part_path=slices_path)
+
+        
 else:
-     raise Exception(
-                f'There is an exception when cutting audio into slices.'
-            )
+# Get audio to cut into slices
+    if FLG_SUPER_RES == True:
+        if FLG_REDUCE_NOISE == False:
+            filename_forSlices = namef + "_sr.wav"
+        elif FLG_REDUCE_NOISE == True and FLG_SPEECH_ENHANCE == False:
+            filename_forSlices = namef + "_nr_sr.wav"
+        elif FLG_REDUCE_NOISE == True and FLG_SPEECH_ENHANCE == True:
+            filename_forSlices = namef + "_nr_se_sr.wav"
+        else:
+            raise Exception(
+                        f'There is an exception when searching for .wav file to cut into slices.'
+                    )
+    else:
+        if FLG_REDUCE_NOISE == False:
+            filename_forSlices = namef + ".wav"
+        elif FLG_REDUCE_NOISE == True and FLG_SPEECH_ENHANCE == False:
+            filename_forSlices = namef + "_nr.wav"
+        elif FLG_REDUCE_NOISE == True and FLG_SPEECH_ENHANCE == True:
+            filename_forSlices = namef + "_nr_se.wav"
+        else:
+            raise Exception(
+                        f'There is an exception when searching for .wav file to cut into slices.'
+                    )
+
+    if flg_slice_orig == True:
+        file_forSlices = AUDIO_FILE
+    else:
+        file_forSlices = os.path.join(AUDIO_PATH, filename_forSlices)
+    uob_mainprocess.cut_audio_by_timestamps(start_end_list=tem_sd_result, audioname=filename_forSlices, audiofile=file_forSlices, part_path=slices_path)
 
 print('*'*30, 'Cut Slices Done')
 
 ###  Speech to Text Conversion
-## Load VOSK model
-stt_model_vosk_rec = uob_stt.load_stt_model(stt_model='vosk',pretrained_model_path=os.path.join(pretrained_model_path,'stt/model'), sr=STT_SAMPLERATE)
+## Load stt model
+stt_model = uob_stt.load_stt_model(stt_model=sttModel,pretrained_model_path=pretrained_model_path, sr=STT_SAMPLERATE)
 ## STT start
 print('*'*30)
 print('STT Conversion Start')
-stt = uob_mainprocess.stt_process(slices_path=slices_path, rec=stt_model_vosk_rec, sr = STT_SAMPLERATE)
+stt = uob_mainprocess.stt_process(sttModel = sttModel, slices_path=slices_path, rec=stt_model, sr = STT_SAMPLERATE)
 print('*'*30)
 print('STT Conversion Done')
 
 ### merge SD and STT
 transactionDf = pd.merge(left = final_sd_result, right = stt, on="index",how='left')
-
+transactionDf.to_csv('transactionDf.csv')
 
 ###  Speaker Labelling
 print('*'*30)
@@ -297,7 +336,9 @@ final.to_csv(os.path.splitext(AUDIO_NAME)[0] + '_output.csv')
 ### Store output to database
 print('*'*30)
 print("Insert Output to Database Start")
-# uob_mainprocess.dbInsertSTT_func(finalDf=final, orig_path=AUDIO_PATH, processed_path=AUDIO_PATH, slices_path=slices_path) #TODO: change path to path+name
+audio_id = uob_storage.dbInsertAudio(upload_filename=AUDIO_NAME, upload_filepath=AUDIO_PATH, audioname=AUDIO_NAME, audiopath=AUDIO_PATH)
+uob_storage.dbInsertSTT(finalDf=final, audio_id=audio_id, slices_path=slices_path)
+
 print('*'*30)
 print("Insert Output to Database Done")
 
@@ -310,3 +351,13 @@ print('*' * 30,'\n  Finished!!',)
 print('start from:', starttime) 
 print('end at:', endtime) 
 print('duration: ', endtime-starttime)
+
+
+### Save to Log Table
+params = json.dumps({"NR":FLG_REDUCE_NOISE, "SE":FLG_SPEECH_ENHANCE, "SR":FLG_SUPER_RES, "SD":sdModel, "STT":sttModel})
+analysis_name = json.dumps({"0":"SD", "1":"STT"})
+message = ''
+# process_time = json.dumps({"starttime":starttime, "endtime":endtime, "duration":endtime-starttime})
+process_time = '{"starttime":"%s", "endtime":"%s", "duration":"%s"}'%(starttime,endtime,endtime-starttime)
+
+uob_storage.dbInsertLog(audio_id=audio_id, params=params, analysis_name=analysis_name, process_time=process_time)
