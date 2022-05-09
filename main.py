@@ -24,7 +24,7 @@ from pyannote.audio import Pipeline as pa_Pipeline
 from pydub import AudioSegment
 
 
-import uob_audiosegmentation, uob_noisereduce, uob_speechenhancement, uob_superresolution, uob_speakerdiarization, uob_stt, uob_mainprocess, uob_utils, uob_label, uob_storage
+import uob_audiosegmentation, uob_noisereduce, uob_speechenhancement, uob_superresolution, uob_speakerdiarization, uob_stt, uob_mainprocess, uob_utils, uob_label, uob_storage, uob_speechenhancement_new
 from init import (
     pretrained_model_path,
     AUDIO_NAME,
@@ -34,6 +34,7 @@ from init import (
     STT_SAMPLERATE,
     FLG_REDUCE_NOISE,
     FLG_SPEECH_ENHANCE,
+    FLG_SPEECH_ENHANCE_NEW,
     FLG_SUPER_RES,
     sd_global_starttime,
     sttModel,
@@ -99,7 +100,8 @@ print('*' * 30)
 nr_model = uob_noisereduce.load_noisereduce_model_local(quantized=False)
 ## Speech Reduce models
 # se_model = uob_speechenhancement.load_speechenhancement_model(model='unet',quantized=True)
-se_model = uob_speechenhancement.load_speechenhancement_model_local(quantized=False)
+se_model = uob_speechenhancement.load_speechenhancement_model_local(quantized=False) if FLG_SPEECH_ENHANCE == True else None
+se_model_new = uob_speechenhancement_new.load_speechenhancement_model_local() if FLG_SPEECH_ENHANCE_NEW == True else None
 ## Super Resolution models
 # sr_model = uob_superresolution.load_superresolution_model(quantized=False)
 sr_model = uob_superresolution.load_superresolution_model_local(quantized=False)
@@ -162,6 +164,8 @@ if chunksfolder != '':
                                                 reducenoise=FLG_REDUCE_NOISE,
                                                 speechenhance=FLG_SPEECH_ENHANCE,
                                                 superresolution=FLG_SUPER_RES,
+                                                speechenhance_new=FLG_SPEECH_ENHANCE_NEW,
+                                                se_model_new = se_model_new,
                                                 sd_proc=sdModel)  # ?: [pyannoteaudio, malaya, resemblyzer]
             
             
@@ -213,6 +217,8 @@ else:
                                         reducenoise=FLG_REDUCE_NOISE, 
                                         speechenhance=FLG_SPEECH_ENHANCE,
                                         superresolution=FLG_SUPER_RES,
+                                        speechenhance_new=FLG_SPEECH_ENHANCE_NEW,
+                                        se_model_new = se_model_new,
                                         sd_proc=sdModel)  # ?: [pyannoteaudio, malaya, resemblyzer]
     
     # ### * Cut audio by SD result
