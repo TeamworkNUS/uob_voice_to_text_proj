@@ -361,7 +361,7 @@ print('duration: ', endtime-starttime)
 
 
 ### Save to Log Table
-params = json.dumps({"NR":FLG_REDUCE_NOISE, "SE":FLG_SPEECH_ENHANCE, "SR":FLG_SUPER_RES, "SD":sdModel, "STT":sttModel})
+params = json.dumps({"NR":FLG_REDUCE_NOISE, "SE":FLG_SPEECH_ENHANCE, "SE_NEW":FLG_SPEECH_ENHANCE_NEW, "SR":FLG_SUPER_RES, "SD":sdModel, "STT":sttModel})
 analysis_name = json.dumps({"0":"SD", "1":"STT"})
 message = ''
 # process_time = json.dumps({"starttime":starttime, "endtime":endtime, "duration":endtime-starttime})
