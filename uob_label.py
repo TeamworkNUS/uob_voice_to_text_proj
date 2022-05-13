@@ -33,7 +33,7 @@ except LookupError:
 
 def speaker_label_func(input, pretrained_model_path, checklist_path):
     def preprocess(doc):
-        doc = doc.lower()  # Lower the text.
+        doc = doc.lower() if type(doc) is not float else ''  # Lower the text.
         doc = word_tokenize(doc)  # Split into words.
         doc = [w for w in doc if not w in label_stop_words]  # Remove stopwords.
         doc = [w for w in doc if w.isalpha()]  # Remove numbers and punctuation.

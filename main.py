@@ -337,6 +337,7 @@ print("Speaker Labelling Done")
 # print(stt)
 # print(final_sd_result)
 print(final)
+# final = final.sort_values('index')
 final.to_csv(os.path.splitext(AUDIO_NAME)[0] + '_output.csv')
 
 ### Store output to database

@@ -22,11 +22,11 @@ dbUser = 'root'
 dbPwd = 'password'
 
 sd_global_starttime = 0.0
-sttModel = 'vosk' # ? ['malaya-speech', 'vosk']
+sttModel = 'malaya-speech' # ? ['malaya-speech', 'vosk']
 sdModel = 'resemblyzer' # ? [pyannoteaudio, malaya, resemblyzer]
 
 flg_slice_orig = True
-
+stt_replace_template = 'stt_replace_template.csv'
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #                              Initialization  Processes                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
