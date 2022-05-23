@@ -24,7 +24,7 @@ from pyannote.audio import Pipeline as pa_Pipeline
 from pydub import AudioSegment
 
 
-import uob_audiosegmentation, uob_noisereduce, uob_speechenhancement, uob_superresolution, uob_speakerdiarization, uob_stt, uob_mainprocess, uob_utils, uob_label, uob_storage
+import uob_audiosegmentation, uob_noisereduce, uob_speechenhancement, uob_superresolution, uob_speakerdiarization, uob_stt, uob_mainprocess, uob_utils, uob_label, uob_storage, uob_speechenhancement_new
 from init import (
     pretrained_model_path,
     AUDIO_NAME,
@@ -34,6 +34,7 @@ from init import (
     STT_SAMPLERATE,
     FLG_REDUCE_NOISE,
     FLG_SPEECH_ENHANCE,
+    FLG_SPEECH_ENHANCE_NEW,
     FLG_SUPER_RES,
     sd_global_starttime,
     sttModel,
@@ -99,7 +100,8 @@ print('*' * 30)
 nr_model = uob_noisereduce.load_noisereduce_model_local(quantized=False)
 ## Speech Reduce models
 # se_model = uob_speechenhancement.load_speechenhancement_model(model='unet',quantized=True)
-se_model = uob_speechenhancement.load_speechenhancement_model_local(quantized=False)
+se_model = uob_speechenhancement.load_speechenhancement_model_local(quantized=False) if FLG_SPEECH_ENHANCE == True else None
+se_model_new = uob_speechenhancement_new.load_speechenhancement_model_local() if FLG_SPEECH_ENHANCE_NEW == True else None
 ## Super Resolution models
 # sr_model = uob_superresolution.load_superresolution_model(quantized=False)
 sr_model = uob_superresolution.load_superresolution_model_local(quantized=False)
@@ -162,6 +164,8 @@ if chunksfolder != '':
                                                 reducenoise=FLG_REDUCE_NOISE,
                                                 speechenhance=FLG_SPEECH_ENHANCE,
                                                 superresolution=FLG_SUPER_RES,
+                                                speechenhance_new=FLG_SPEECH_ENHANCE_NEW,
+                                                se_model_new = se_model_new,
                                                 sd_proc=sdModel)  # ?: [pyannoteaudio, malaya, resemblyzer]
             
             
@@ -213,6 +217,8 @@ else:
                                         reducenoise=FLG_REDUCE_NOISE, 
                                         speechenhance=FLG_SPEECH_ENHANCE,
                                         superresolution=FLG_SUPER_RES,
+                                        speechenhance_new=FLG_SPEECH_ENHANCE_NEW,
+                                        se_model_new = se_model_new,
                                         sd_proc=sdModel)  # ?: [pyannoteaudio, malaya, resemblyzer]
     
     # ### * Cut audio by SD result
@@ -318,7 +324,7 @@ print('STT Conversion Done')
 
 ### merge SD and STT
 transactionDf = pd.merge(left = final_sd_result, right = stt, on="index",how='left')
-transactionDf.to_csv('transactionDf.csv')
+# transactionDf.to_csv('transactionDf.csv')
 
 ###  Speaker Labelling
 print('*'*30)
@@ -331,7 +337,9 @@ print("Speaker Labelling Done")
 # print(stt)
 # print(final_sd_result)
 print(final)
-final.to_csv(os.path.splitext(AUDIO_NAME)[0] + '_output.csv')
+# final = final.sort_values('index')
+starttime_str=starttime.strftime("%Y%m%d_%H%M%S")
+final.to_csv(os.path.splitext(AUDIO_NAME)[0] + '_' + starttime_str + '_output.csv')
 
 ### Store output to database
 print('*'*30)
@@ -354,7 +362,7 @@ print('duration: ', endtime-starttime)
 
 
 ### Save to Log Table
-params = json.dumps({"NR":FLG_REDUCE_NOISE, "SE":FLG_SPEECH_ENHANCE, "SR":FLG_SUPER_RES, "SD":sdModel, "STT":sttModel})
+params = json.dumps({"NR":FLG_REDUCE_NOISE, "SE":FLG_SPEECH_ENHANCE, "SE_NEW":FLG_SPEECH_ENHANCE_NEW, "SR":FLG_SUPER_RES, "SD":sdModel, "STT":sttModel})
 analysis_name = json.dumps({"0":"SD", "1":"STT"})
 message = ''
 # process_time = json.dumps({"starttime":starttime, "endtime":endtime, "duration":endtime-starttime})
