@@ -28,6 +28,9 @@
                             {% if audio.audio_name == audio.upload_filename %}
                                 <source src="{{MEDIA_URL}}{{audio.audio_name}}" type="audio/wav">
                                 Your browser does not support the audio tag.
+                            {% elif  audio.upload_filename|slice:"-3:" == "mp3" %}
+                                <source src="{{MEDIA_URL}}{{audio.audio_name}}" type="audio/wav">
+                                Your browser does not support the audio tag.
                             {% else %}
                                 <source src="{{MEDIA_URL}}{{zip_folder}}/{{audio.audio_name}}" type="audio/wav">
                                 Your browser does not support the audio tag.
@@ -82,6 +85,9 @@
                     {% with slice.slice_path_last_folder as slice_folder %}
                     <audio controls>
                         {% if audio.audio_name == audio.upload_filename %}
+                            <source src="{{MEDIA_URL}}{{slice_folder}}/{{slice.slice_name}}" type="audio/wav">
+                            Your browser does not support the audio tag.
+                        {% elif  audio.upload_filename|slice:"-3:" == "mp3" %}
                             <source src="{{MEDIA_URL}}{{slice_folder}}/{{slice.slice_name}}" type="audio/wav">
                             Your browser does not support the audio tag.
                         {% else %}
