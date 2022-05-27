@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    {% comment %} <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/5.1.3/css/bootstrap.min.css"> {% endcomment %}
+    {% comment %} <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/5.1.3/css/bootstrap-theme.min.css">  {% endcomment %}
+    {% comment %} <link rel="stylesheet" type="text/css" href="{% static 'analysis/style.css' %}"> {% endcomment %}
+    {% comment %} <link rel="stylesheet" type="text/css" href="{% static 'boostrap5/css/bootstrap.min.css' %}"> {% endcomment %}
+    {% comment %} <link rel="stylesheet" type="text/css" href="{% static 'boostrap5/css/bootstrap-theme.min.css' %}"> {% endcomment %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+    {% comment %} <script type="text/javascript" src="js/jquery-1.8.3.min.js"></script> {% endcomment %}
+    {% comment %} <script type="text/javascript" src="js/bootstrap.min.js"></script> {% endcomment %}
+    {% load static %}
+    <title>{% block head %}Django UOB Voice-to-Text Analysis Base Page{% endblock %}</title>
+</head>
+<body>
+  <main>
+    {% block title %}
+    {% endblock %}
+    {% block band %}
+        {% comment %} <p> <a>{{ user.username }}</a> | <a href="{% url 'logout' %}">Log Out</a></p> {% endcomment %}
+        <div class="hstack gap-3">
+          {% comment %} <div class="bg-light border">First item</div> {% endcomment %}
+          <div class="ms-auto">{{ user.username }}</div>
+          <div class="vr"></div>
+          <div class=""><a href="{% url 'logout' %}">Log Out</a></div>
+        </div>
+    {% endblock %}
+    {% block navigation %}
+        {% comment %} <p><a href="{% url 'analysis:main' %}"> Main </a> | <a href="{% url 'analysis:history' %}"> History </a> | <a href="{% url 'analysis:upload' %}"> Upload </a> | <a href="{% url 'analysis:about' %}"> About </a></p> {% endcomment %}
+
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+          <div class="container-fluid">
+            <a class="navbar-brand" href="#">UOB Group</a>
+            {% comment %} <div class="img" style="width: 8em; height:auto;"><img src="{% static 'analysis/images/United_Overseas_Bank_UOB_logo_logotype.png' %}" class="img-thumbnail mw-100" alt="UOB_Logo"></div> {% endcomment %}
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+              <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'analysis:main' %}">Main</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'analysis:history' %}">History</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'analysis:upload' %}">Upload</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'analysis:about' %}">About</a>
+                </li>
+              </ul>
+              <form class="d-flex">  <!-- ###### TODO: Search in the page ###### -->
+                <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+                <button class="btn btn-outline-primary" type="submit">Search</button>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+    {% endblock %}
+
+    <br> <br>
+    {% block content %}
+    {% endblock %}
+
+  </main>
+
+{% comment %} <footer  class="footer navbar-fixed-bottom" >   {% endcomment %}
+  <footer style="position: relative; bottom: 0; width: 100%;">
+    <div class="container">
+      <div class="row">
+        <div class="col text-center">Copyright @ UOB</div>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

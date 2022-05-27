@@ -1,0 +1,60 @@
+{% extends 'base_analysis.html' %}
+{% load static %}
+
+{% block head %}Upload{% endblock %}
+{% block title %}<h1>Upload</h1>{% endblock %}
+
+{% block content %}
+
+{% comment %} <b>Upload from here...</b> {% endcomment %}
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <div class="container">
+        {% comment %} {{ uploadForm.as_p }} {% endcomment %}
+        <div class="row justify-content-center">
+            <div class="mb-3">
+                <label class="form-label" for="description">Description</label>
+                <textarea name="description" rows="2" class="form-control" placeholder="Describe the Upload File...">{{ uploadFile.description }}</textarea>
+            </div>
+
+            
+            <div class="mb-3">
+                <label class="form-label" for="document">Document</label>
+                {% comment %} <input type="file" name="document" class="form-control" >{{ uploadFile.document }}</input> {% endcomment %}
+                <div class="input-group">
+                    <input type="file"  name="document" class="form-control" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload"  placeholder="Choose the Document to upload" required>{{ uploadFile.document }}</input>
+                    <button type="submit" class="btn btn-outline-primary" id="inputGroupFileAddon04">Upload</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="location.href='{% url 'analysis:upload' %}'">Remove</button>
+                </div>
+                <p style="color:red; font-size:1em">Available file types: audio file (wav, mp3) or compressed file (zip, rar)</p>
+            </div> 
+            
+            {% comment %} 
+            <div class="mb-3">
+                <label for="formFileMultiple" class="form-label">Multiple files input example</label>
+                <input class="form-control" type="file" id="formFileMultiple" multiple>
+            </div> 
+            {% endcomment %}
+        </div>
+
+        {% comment %} 
+        <div class="row">
+            <div class="text-end">
+                <button type="submit" class="btn btn-outline-primary" >Upload</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="location.href='{% url 'analysis:upload' %}'">Remove</button>
+            </div>
+        </div> 
+        {% endcomment %}
+    </div>
+
+
+</form>
+<div class="container">
+{% if upload_file_url %}
+    <p>File uploaded at: <a href="{{ upload_file_url }}">{{ upload_file_url }}</a></p>
+{% endif %}
+</div>
+
+{% endblock %}

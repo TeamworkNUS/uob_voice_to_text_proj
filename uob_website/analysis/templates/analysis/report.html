@@ -1,0 +1,131 @@
+{% extends 'base_analysis.html' %}
+{% load static %}
+
+{% block head %}Report{% endblock %}
+{% block title %}<h1>Report</h1>{% endblock %}
+
+{% block content %}
+<h2> Audio:</h2>
+{% if audio %}
+    <div class="container">
+        <table class="table table-bordered .w-auto ">
+            <tbody>
+                <tr>
+                    <th style="font-weight:normal;" >
+                        <span style="font-weight:bold">Upload filename: </span><br>
+                        {{audio.upload_filename}}<br>
+                        <span style="font-weight:bold">Audio: </span><br>
+                        {{audio.audio_name}}
+                    </th>
+                    <th>Audio Meta Params</th>
+                    <th>Creation</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>
+                        {{audio.audio_file}}
+                        <audio controls>
+                            {% if audio.audio_name == audio.upload_filename %}
+                                <source src="{{MEDIA_URL}}{{audio.audio_name}}" type="audio/wav">
+                                Your browser does not support the audio tag.
+                            {% else %}
+                                <source src="{{MEDIA_URL}}{{zip_folder}}/{{audio.audio_name}}" type="audio/wav">
+                                Your browser does not support the audio tag.
+                            {% endif %}
+                        </audio>
+                    </td>
+                    <td>
+                        <ul>
+                            {% for k, v in audio_meta.items%}
+                                <li>{{k}}: {{v}}</li>
+                            {% endfor%}
+                        <ul>
+                    </td>
+                    <td><span style="font-weight:bold">by: </span>{{audio.create_by}} <br> 
+                        <span style="font-weight:bold">on: </span>{{audio.create_date}} {{audio.create_time}}
+                    </td>
+                    <td>{{audio.description}}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <p>No audios are available.</p>
+{% endif %}
+
+
+{% if sttResult %}
+    <div class="row g-2">
+        <div class="col-sm-10">
+            <h2> Report:</h2>
+        </div>
+        <div class="col-sm right">
+            <a href="{% url 'analysis:stt_exportcsv' audio.audio_id %}"><button type="button" class="btn btn-primary" id='btn_download_stt'>Download to CSV</button></a>
+        </div>
+    </div>
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th scope="col">Audio</th>
+                <th scope="col">SliceID</th>
+                <th scope="col">SpeakerLabel</th>
+                <th scope="col">Start</th>
+                <th scope="col">End</th>
+                <th scope="col">Duration</th>
+                <th scope="col">Text</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for slice in sttResult %}           
+            <tr>
+                <td>
+                    {% with slice.slice_path_last_folder as slice_folder %}
+                    <audio controls>
+                        {% if audio.audio_name == audio.upload_filename %}
+                            <source src="{{MEDIA_URL}}{{slice_folder}}/{{slice.slice_name}}" type="audio/wav">
+                            Your browser does not support the audio tag.
+                        {% else %}
+                            <source src="{{MEDIA_URL}}{{zip_folder}}/{{slice_folder}}/{{slice.slice_name}}" type="audio/wav">
+                            Your browser does not support the audio tag.
+                        {% endif %}
+                    </audio>
+                    {% endwith %}
+                </td>
+                <td>{{ slice.slice_id }}</td>
+                <td>{{ slice.speaker_label }}</td>
+                <td>{{ slice.start_time }}</td>
+                <td>{{ slice.end_time }}</td>
+                <td>{{ slice.duration }}</td>
+                <td>{{ slice.text }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <h2> Report:</h2>
+    <p>Pending analysis report...</p>
+{% endif %}
+
+<div id="id_scrollBtns" style="position:fixed; right:0; bottom:0"> 
+    <button type="button" class="btn btn-secondary" onclick="scrollToTop()"><i class="bi bi-caret-up-fill"></i></button>
+    <br>
+    <button type="button" class="btn btn-secondary" onclick="scrollToBottom()"><i class="bi bi-caret-down-fill"></i></button>
+</div>
+
+
+
+
+
+<script language="javascript" type="text/javascript">
+    // ***** Scroll to top/bottom of page ***** //
+    function scrollToBottom() {
+        $(document).scrollTop($(document).height());
+    };
+    function scrollToTop() {
+        $(document).scrollTop(0);
+    };
+</script>
+
+{% endblock %}
+
+

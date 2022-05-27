@@ -1,0 +1,41 @@
+{% extends 'base_analysis.html' %}
+{% load static %}
+
+{% block head %}Analysis Selection{% endblock %}
+{% block title %}<h1>Analysis Selection</h1>{% endblock %}
+
+{% block content %}
+<p>This is checkbox list for selecting analysis processes for <i>{{audio.audio_name}}</i></p>
+
+{{ form.analysisChoices.errors }} 
+{{ form.non_field_errors }} 
+<form method="post" id='analysis_selection_form'> <!--action="{% url 'analysis:history'%}" -->
+    {% csrf_token %}
+    {% comment %} {{ form }} {% endcomment %}
+
+    {{ form.analysisChoices.label}}
+    <div class="list-group">
+      {% for selection in form.analysisChoices %}
+        <label class="list-group-item">
+          {% comment %} <input class="form-check-input me-1" type="checkbox" id="{{ selection.id_for_label}}" name="cb_inputs" value="{{ selection.choice_label}}" {% if 'SD+STT' in selection.choice_label %} checked disabled {% endif %}> {% endcomment %}
+          {{ selection.tag }}{{ selection.choice_label}}
+          {% comment %} <span>{% if 'SD+STT' in selection.choice_label %} disabled {% endif %}</span> {% endcomment %}
+        </label> 
+      {% endfor %}
+    </div>
+
+    {% comment %} 
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" value="" id="flexCheckCheckedDisabled" checked disabled>
+      <label class="form-check-label" for="flexCheckCheckedDisabled">
+        Disabled checked checkbox ---> for SD+STT
+      </label>
+    </div> 
+    {% endcomment %}
+
+    <button type="submit" class="btn btn-outline-primary">Start</button>  <!-- id="inputGroupFileAddon04"-->
+    <button type="button" class="btn btn-outline-secondary" onclick="location.href='{% url 'analysis:history' %}'">Cancal</button>
+
+</form>
+
+{% endblock %}

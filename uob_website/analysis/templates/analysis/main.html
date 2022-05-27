@@ -1,0 +1,24 @@
+{% extends 'base_analysis.html' %}
+{% load static %}
+
+{% block head %}Main{% endblock %}
+{% block title %}<h1>Main</h1>{% endblock %}
+
+
+{% block content %}
+{% if user.is_authenticated %}
+<div>
+    <p> Hello {{ user.username }}! </p>
+    <p> Welcome to Voice to Text Analysis System</p>
+    <p> number of audios: <b> {{num_audios}} </b> </p>
+    <p> number of audios not analyzed: <b> {{num_audios_unanalysis}} </b> </p>
+
+</div>   
+
+{% else %}
+    <p>You are not logged in</p>
+    <a href="{% url 'login' %}">Log In</a>
+{% endif %}
+
+{% endblock %}
+
