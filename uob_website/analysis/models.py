@@ -21,7 +21,7 @@ class Audio(models.Model):
     description = models.TextField(blank=True,null=True) #models.CharField(max_length=200,null=True)
     audio_meta = models.CharField(max_length=200,blank=True,null=True)
     analysis = models.CharField(max_length=200,blank=True,null=True)
-    flg_delete = models.CharField(max_length=1,null=True)
+    flg_delete = models.CharField(max_length=1,blank=True,null=True)
     create_by = models.CharField(max_length=50,null=False,default=str(os.getlogin()))
     create_date = models.DateField(null=False,default=time.strftime("%Y-%m-%d"))
     create_time = models.TimeField(null=False,default=time.strftime("%H:%M:%S"))
