@@ -25,10 +25,12 @@ import os
 import numpy as np
 from datetime import datetime
 import pandas as pd
+import re
 
 import uob_noisereduce, uob_speakerdiarization, uob_audiosegmentation, uob_stt, uob_speechenhancement, uob_label, uob_storage, uob_superresolution, uob_speechenhancement_new
 from init import(
-    stt_replace_template
+    stt_replace_template,
+    profanity_list
 )
 
 def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, se_model=None, sr_model=None, vad_model=None, sv_model=None, pipeline=None, chunks:bool=True, reducenoise:bool=False, speechenhance:bool=False, superresolution:bool=False, speechenhance_new:bool=False, se_model_new=None, sd_proc='pyannoteaudio'):
@@ -70,7 +72,7 @@ def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, se_model=N
             audioname = '%s.%s'%(namef+'_se',namec)
             sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
         
-        ## Speech Enhancement
+    ## Speech Enhancement New
     if speechenhance_new == True:
         y = malaya_speech_enhance_new(y, sr, se_model_new = se_model_new)
         
@@ -87,36 +89,6 @@ def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, se_model=N
             audioname = '%s.%s'%(namef+'_se',namec)
             sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
 
-    ## Super Resolution
-    if superresolution == True:
-        #! 1.Currently we only supported 4x super resolution, if input sample rate is 16k, output will become 16k * 4.
-        #! 2.We trained on 11025 for input sample rate, 44100 for output sample rate.
-        reduction_factor = 4
-        y_, sr_ = malaya_speech.load(os.path.join(audiopath,audioname), sr = sr // reduction_factor)
-        y = malaya_super_resolution(y_, sr_, sr_model=sr_model)
-        # y = malaya_super_resolution(y, sr, sr_model=sr_model)
-        
-        if chunks:
-            namef, namec = os.path.splitext(audioname)
-            namef_other, namef_index = namef.rsplit("_", 1)
-            namef_index = int(namef_index)
-            namec = namec[1:]
-            audioname = '%s_%04d.%s'%(namef_other+'_sr',namef_index,namec)
-            sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
-        else:
-            namef, namec = os.path.splitext(audioname)
-            namec = namec[1:]
-            audioname = '%s.%s'%(namef+'_sr',namec)
-            sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?        
-    
-    if chunks:
-        audiopath = audiopath + '_processed'
-        if not os.path.exists(audiopath): 
-            os.mkdir(audiopath)
-        sf.write(os.path.join(audiopath,audioname), y, sr)
-    else:
-        sf.write(os.path.join(audiopath,audioname), y, sr)
-    print('audiopath: ',audiopath)
     
     ## Super Resolution
     if superresolution == True:
@@ -181,14 +153,37 @@ def stt_process(sttModel, slices_path, rec, sr):
     elif sttModel == 'malaya-speech':
         stt_result = uob_stt.stt_conversion_malaya_speech(slices_path, rec)
 
+
+    ### Extra Steps
+    # 1. word replacement: pos_tagger & direct replace
+    # 2. profanity handling: masking
+    
     ## POS Tagger manually replace words
     if os.path.exists(path=stt_replace_template):
         print('Go to pos tagger replace...')
         template = pd.read_csv(stt_replace_template)
         text_replace = []
         for index, row in stt_result.iterrows():
-            l_r = uob_stt.pos_replace(l = row["text"], template = template)
+            l = str(row["text"])
+            l_r = uob_stt.pos_replace(l = l, template = template)
             text_replace.append(str(l_r))
+        stt_result['text'] = text_replace
+    
+    ## Profanity handling
+    if os.path.exists(path=profanity_list):
+        print('Go to profanity handling...')
+        swear_corpus=[]
+        with open(profanity_list,"r") as f:
+            for word in f.readlines():
+                word = word.strip()
+                if len(word) !=0:
+                    swear_corpus.append(' '+word+' ')
+        p_pattern = re.compile("|".join(swear_corpus))
+        text_replace = []
+        for index, row in stt_result.iterrows():
+            l = str(row["text"])
+            l_p = uob_stt.profanity_handling(l = l, p_pattern = p_pattern)
+            text_replace.append(str(l_p))
         stt_result['text'] = text_replace
         
     return stt_result
