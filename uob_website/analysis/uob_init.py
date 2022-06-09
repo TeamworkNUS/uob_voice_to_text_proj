@@ -20,6 +20,7 @@ sdModel = 'resemblyzer' # ? [pyannoteaudio, malaya, resemblyzer]
 
 flg_slice_orig = True
 stt_replace_template = './analysis/utils/stt_replace_template.csv'
+profanity_list = './analysis/utils/swear_words_list.txt'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #                              Initialization  Processes                              #

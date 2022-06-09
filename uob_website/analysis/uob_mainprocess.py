@@ -22,15 +22,18 @@ from scipy.ndimage.morphology import binary_dilation
 from analysis.resemblyzer.hparams import *
 
 import os
+import re
 import numpy as np
 import pandas as pd
+import shutil
 from datetime import datetime
 import filetype
-import zipfile, rarfile
+import zipfile, rarfile, py7zr
 
 from analysis import uob_noisereduce, uob_speakerdiarization, uob_audiosegmentation, uob_stt, uob_speechenhancement, uob_speechenhancement_new, uob_label, uob_storage, uob_superresolution, uob_utils
 from analysis.uob_init import(
-    stt_replace_template
+    stt_replace_template,
+    profanity_list
 )
 
 
@@ -57,15 +60,33 @@ def process_upload_file(upload_filename, upload_filepath):
             os.mkdir(zip_folder)
             
         zip = zipfile.ZipFile(upload_file)
-        for name in zip.namelist():
-            zip.extract(name, zip_folder)
+        zip.extractall(path=zip_folder)
+        zip.close()
+        ## Delete irregular files
+        namelist_toDel = [name for name in os.listdir(zip_folder) if not os.path.isfile(os.path.join(zip_folder,name))]
+        for name in namelist_toDel:
+            shutil.rmtree(os.path.join(zip_folder, name))
+
+        ## Process regular file
+        namelist = [name for name in os.listdir(zip_folder) if os.path.isfile(os.path.join(zip_folder,name))]
+        for name in namelist:
+            # zip.extract(name, zip_folder)  #zip.namelist()
             unzip_extension, unzip_mime = uob_utils.check_file_type(name, zip_folder)
             to_audioname = os.path.splitext(name)[0]+'.wav'
             to_audiopath = zip_folder
-            if unzip_extension != 'wav' or unzip_mime != 'audio/x-wav':
+            print(name, unzip_extension, unzip_mime)
+            if unzip_extension == None or unzip_mime == None:
+                os.remove(os.path.join(zip_folder, name))
+                print('Cannot get file extension or mime! The file will be removed.')
+                continue
+            
+            if (unzip_extension != 'wav' or unzip_mime != 'audio/x-wav') and unzip_mime.startswith('audio'):
                 uob_utils.audio2wav(from_audioname=name, from_audiopath=zip_folder, to_audioname=to_audioname, to_audiopath=to_audiopath)
                 os.remove(os.path.join(zip_folder, name))
-        return len(os.listdir(zip_folder)), 'compressed', to_audioname, to_audiopath
+            elif not unzip_mime.startswith('audio'):
+                os.remove(os.path.join(zip_folder, name))
+                print('remove non-audio file:',name)
+        return len(os.listdir(zip_folder)), 'compressed', '*', zip_folder
         
         
     elif upload_extension == 'rar' and upload_mime == 'application/x-rar-compressed':
@@ -74,15 +95,66 @@ def process_upload_file(upload_filename, upload_filepath):
             os.mkdir(zip_folder)
         
         rar = rarfile.RarFile(upload_file)
-        for name in rar.namelist():
-            rar.extract(name, zip_folder)
+        rar.extractall(path=zip_folder)
+        rar.close()
+        ## Delete irregular files
+        namelist_toDel = [name for name in os.listdir(zip_folder) if not os.path.isfile(os.path.join(zip_folder,name))]
+        for name in namelist_toDel:
+            shutil.rmtree(os.path.join(zip_folder, name))
+        
+        ## Process regular file
+        namelist = [name for name in os.listdir(zip_folder) if os.path.isfile(os.path.join(zip_folder,name))]
+        for name in namelist:
+            # rar.extract(name, zip_folder)  # rar.namelist()
             unzip_extension, unzip_mime = uob_utils.check_file_type(name, zip_folder)
             to_audioname = os.path.splitext(name)[0]+'.wav'
             to_audiopath = zip_folder
-            if unzip_extension != 'wav' or unzip_mime != 'audio/x-wav':
+            print(name, unzip_extension, unzip_mime)
+            if unzip_extension == None or unzip_mime == None:
+                os.remove(os.path.join(zip_folder, name))
+                print('Cannot get file extension or mime! The file will be removed.')
+                continue
+            
+            if (unzip_extension != 'wav' or unzip_mime != 'audio/x-wav') and unzip_mime.startswith('audio'):
                 uob_utils.audio2wav(from_audioname=name, from_audiopath=zip_folder, to_audioname=to_audioname, to_audiopath=to_audiopath)
                 os.remove(os.path.join(zip_folder, name))
-        return len(os.listdir(zip_folder)), 'compressed', to_audioname, to_audiopath
+            elif not unzip_mime.startswith('audio'):
+                os.remove(os.path.join(zip_folder, name))
+                print('remove non-audio file:',name)
+        return len(os.listdir(zip_folder)), 'compressed', '*', zip_folder
+    
+    
+    elif upload_extension == '7z' and upload_mime == 'application/x-7z-compressed':
+        zip_folder = os.path.join(upload_filepath, upload_purename)
+        if not os.path.exists(zip_folder): 
+            os.mkdir(zip_folder)
+        
+        sevenZip = py7zr.SevenZipFile(upload_file)
+        sevenZip.extractall(path=zip_folder)
+        sevenZip.close()
+        ## Delete irregular files
+        namelist_toDel = [name for name in os.listdir(zip_folder) if not os.path.isfile(os.path.join(zip_folder,name))]
+        for name in namelist_toDel:
+            shutil.rmtree(os.path.join(zip_folder, name))
+        
+        ## Process regular file
+        namelist = [name for name in os.listdir(zip_folder) if os.path.isfile(os.path.join(zip_folder,name))]
+        for name in namelist:        
+            unzip_extension, unzip_mime = uob_utils.check_file_type(name, zip_folder)
+            to_audioname = os.path.splitext(name)[0]+'.wav'
+            to_audiopath = zip_folder
+            print(name, unzip_extension, unzip_mime)
+            if unzip_extension == None or unzip_mime == None:
+                os.remove(os.path.join(zip_folder, name))
+                print('Cannot get file extension or mime! The file will be removed.')
+                continue
+            
+            if (unzip_extension != 'wav' or unzip_mime != 'audio/x-wav') and unzip_mime.startswith('audio'):
+                uob_utils.audio2wav(from_audioname=name, from_audiopath=zip_folder, to_audioname=to_audioname, to_audiopath=to_audiopath)
+                os.remove(os.path.join(zip_folder, name))
+            elif not unzip_mime.startswith('audio'):
+                os.remove(os.path.join(zip_folder, name))
+        return len(os.listdir(zip_folder)), 'compressed', '*', zip_folder
     
     
     else:
@@ -212,6 +284,11 @@ def stt_process(sttModel, slices_path, rec, sr):
         stt_result = uob_stt.stt_conversion_vosk(slices_path, rec, sr)
     elif sttModel == 'malaya-speech':
         stt_result = uob_stt.stt_conversion_malaya_speech(slices_path, rec)
+
+
+    ### Extra Steps
+    # 1. word replacement: pos_tagger & direct replace
+    # 2. profanity handling: masking
     
     ## POS Tagger manually replace words
     if os.path.exists(path=stt_replace_template):
@@ -219,8 +296,26 @@ def stt_process(sttModel, slices_path, rec, sr):
         template = pd.read_csv(stt_replace_template)
         text_replace = []
         for index, row in stt_result.iterrows():
-            l_r = uob_stt.pos_replace(l = row["text"], template = template)
+            l = str(row["text"])
+            l_r = uob_stt.pos_replace(l = l, template = template)
             text_replace.append(str(l_r))
+        stt_result['text'] = text_replace
+    
+    ## Profanity handling
+    if os.path.exists(path=profanity_list):
+        print('Go to profanity handling...')
+        swear_corpus=[]
+        with open(profanity_list,"r") as f:
+            for word in f.readlines():
+                word = word.strip()
+                if len(word) !=0:
+                    swear_corpus.append(' '+word+' ')
+        p_pattern = re.compile("|".join(swear_corpus))
+        text_replace = []
+        for index, row in stt_result.iterrows():
+            l = str(row["text"])
+            l_p = uob_stt.profanity_handling(l = l, p_pattern = p_pattern)
+            text_replace.append(str(l_p))
         stt_result['text'] = text_replace
         
     return stt_result

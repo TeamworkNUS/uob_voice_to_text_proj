@@ -1,4 +1,5 @@
 import os
+import re
 import pandas as pd
 import wave
 import json
@@ -168,3 +169,13 @@ def pos_replace(l, template):
                     flag_change = ""
 
     return l_r
+
+def profanity_handling(l, p_pattern):
+    '''
+    l: the stt sentence
+    '''
+    p_once = re.sub(p_pattern, " *** ", ' '+l+' ')
+    p_twice = re.sub(p_pattern, " *** ", p_once)
+    l_p = p_twice.strip(' ')
+        
+    return l_p
