@@ -148,7 +148,7 @@ def pos_replace(l, template):
                     while i < lenth_w-lenth_p+1:
                         # print(i)
                         if words[i:i+lenth_p]==p_w:
-                            if words_pos[i-1][1] in pos_before:
+                            if i-1>=0 and words_pos[i-1][1] in pos_before:
                                 print('the pos of the word before', p, 'is',words_pos[i-1][1])
                                 words[i:i+lenth_p] = key
                                 words_pos = pos_tag(words, tagset='universal')
