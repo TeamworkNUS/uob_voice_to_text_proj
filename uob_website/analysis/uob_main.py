@@ -19,7 +19,6 @@ from .uob_init import (
     FLG_SUPER_RES,
     sttModel,
     sdModel,
-    sd_global_starttime,
     flg_slice_orig,
     STT_SAMPLERATE
 )
@@ -46,6 +45,8 @@ def sd_and_stt(audio, starttime, analysis_name, username):
     num_audio_files = 1
     savetime = starttime.strftime("%Y%m%d_%H%M%S")
     audio_file = os.path.join(audio.path_orig, audio.audio_name).replace("\\","/")
+    if 'sd_starttime_{}'.format(audio.audio_id) not in globals():
+        globals()['sd_starttime_{}'.format(audio.audio_id)] = 0.0
     
     #### * Segmentation
     chunksfolder = ''
@@ -95,16 +96,16 @@ def sd_and_stt(audio, starttime, analysis_name, username):
                     if 'not' not in row[4].lower():
                         tem_sd_index += 1
                         tem_sd_result.append( [tem_sd_index,
-                                                row[1]+sd_global_starttime, 
-                                                row[2]+sd_global_starttime,
+                                                row[1]+globals()['sd_starttime_{}'.format(audio.audio_id)], 
+                                                row[2]+globals()['sd_starttime_{}'.format(audio.audio_id)],
                                                 row[3],
                                                 row[4],
                                                 row[5],
                                                 row[1],
                                                 row[2]])
                         if row[0] == len(sd_result[1:]):
-                            sd_global_starttime += row[2]
-                            print(sd_global_starttime)
+                            globals()['sd_starttime_{}'.format(audio.audio_id)] += row[2]
+                            print(globals()['sd_starttime_{}'.format(audio.audio_id)])
                         
                 
     else:
@@ -279,7 +280,7 @@ def sd_and_stt(audio, starttime, analysis_name, username):
     
     
     # Clear variables
-    sd_global_starttime = 0.0
+    globals()['sd_starttime_{}'.format(audio.audio_id)] = 0.0
     
     #### * End of SD+STT
     # print("SD+STT Done!!!")
