@@ -31,7 +31,7 @@ class Audio(models.Model):
 
 
     def __str__(self):
-        return self.audio_name
+        return self.audio_id
     # def __unicode__ (self):
     #     return  u' %s '%(self.audio_name)
     
@@ -57,12 +57,26 @@ class STTresult(models.Model):
     create_time = models.TimeField(null=False,default=time.strftime("%H:%M:%S"))
     
     def __str__(self):
-        return self.slice_name
+        return self.audio_slice_id
     
     def slice_path_last_folder(self):
         folder_tree_list =  self.slice_path.split('/')
         last_folder = folder_tree_list[-1]
         return last_folder
+    
+    def slice_path_chunk_folder(self):
+        folder_tree_list =  self.slice_path.split('/')
+        chunk_folder = folder_tree_list[-2]
+        if chunk_folder.startswith('chunks_'):
+            return chunk_folder
+        else:
+            return ''
+    
+    def slice_folder(self):
+        last_folder = self.slice_path_last_folder()
+        chunk_folder = self.slice_path_chunk_folder()
+        slice_folder = os.path.join(chunk_folder, last_folder)
+        return slice_folder
 
 
     
@@ -92,6 +106,8 @@ class AnalysisSelection(models.Model):
     
 
 class Upload(models.Model):
+    class Meta:
+        managed=False
     upload_id = models.CharField(primary_key=True,max_length=30)
     description = models.CharField(max_length=255, blank=True)
     document = models.FileField(blank=True, null=False, upload_to=MEDIA_ROOT)

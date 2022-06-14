@@ -98,7 +98,7 @@ def dbInsertAudio(audio_id, upload_filename, upload_filepath, upload_file_count,
 
     
     
-def dbInsertSTT(finalDf, audio_id, slices_path):
+def dbInsertSTT(finalDf, audio_id, slices_path, username=os.getlogin()):
     connection= connectDB()
                         
     # resultDf=finalDf.fillna(0)
@@ -115,38 +115,50 @@ def dbInsertSTT(finalDf, audio_id, slices_path):
             sql = "INSERT INTO `analysis_sttresult` (`audio_slice_id`, `audio_id`, `slice_id`,`start_time`,`end_time`,`duration`,`text`,`speaker_label`,`slice_name`,`slice_path`,`create_by`,`create_date`,`create_time`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
             for i in range(0,len(resultDf)):
                 audio_slice_id = audio_id+"_"+str(resultDf['index'][i])
-                cursor.execute(sql, (audio_slice_id, audio_id, resultDf['index'][i], resultDf.starttime[i],resultDf.endtime[i],resultDf.duration[i],resultDf.text[i],resultDf.label[i],resultDf.slice_wav_file_name[i],slices_path,str(os.getlogin()),time.strftime("%Y-%m-%d"),time.strftime("%H:%M:%S")))
+                ### Option 1: Using Windows Authentication
+                # cursor.execute(sql, (audio_slice_id, audio_id, resultDf['index'][i], resultDf.starttime[i],resultDf.endtime[i],resultDf.duration[i],resultDf.text[i],resultDf.label[i],resultDf.slice_wav_file_name[i],slices_path,str(os.getlogin()),time.strftime("%Y-%m-%d"),time.strftime("%H:%M:%S")))
+                ### Option 2: Using Django Authentication
+                cursor.execute(sql, (audio_slice_id, audio_id, resultDf['index'][i], resultDf.starttime[i],resultDf.endtime[i],resultDf.duration[i],resultDf.text[i],resultDf.label[i],resultDf.slice_wav_file_name[i],slices_path,str(username),time.strftime("%Y-%m-%d"),time.strftime("%H:%M:%S")))
 
         # connection is not autocommit by default. So you must commit to save your changes.
         connection.commit()
 
 
-def dbUpdateAudio_processedInfo(audio_id, **kwargs): #audioname_processed, path_processed,
+def dbUpdateAudio_processedInfo(audio_id, username=os.getlogin(), **kwargs): #audioname_processed, path_processed,
     connection= connectDB()
     
     with connection:
         with connection.cursor() as cursor:
             if kwargs.get('audio_name_processed') and kwargs.get('path_processed'):
                 sql = "UPDATE `analysis_audio` SET audio_name_processed = %s , path_processed = %s, update_by=%s, update_date=%s, update_time=%s WHERE audio_id = %s;"
-                cursor.execute(sql,(kwargs.get('audio_name_processed'), kwargs.get('path_processed'), str(os.getlogin()),time.strftime("%Y-%m-%d"),time.strftime("%H:%M:%S"),audio_id))
+                ### Option 1: Using Windows Authentication
+                # cursor.execute(sql,(kwargs.get('audio_name_processed'), kwargs.get('path_processed'), str(os.getlogin()),time.strftime("%Y-%m-%d"),time.strftime("%H:%M:%S"),audio_id))
+                ### Option 2: Using Django Authentication
+                cursor.execute(sql,(kwargs.get('audio_name_processed'), kwargs.get('path_processed'), str(username),time.strftime("%Y-%m-%d"),time.strftime("%H:%M:%S"),audio_id))
             if kwargs.get('analysis'):
-                analysis_str = escape_string(str(kwargs.get('analysis')))
+                # analysis_str = escape_string(str(kwargs.get('analysis')))
                 # print(analysis_str)
                 sql = "UPDATE `analysis_audio` SET analysis = %s, update_by=%s, update_date=%s, update_time=%s WHERE audio_id = %s;"
-                cursor.execute(sql,(kwargs.get('analysis'), str(os.getlogin()),time.strftime("%Y-%m-%d"),time.strftime("%H:%M:%S"),audio_id))
+                ### Option 1: Using Windows Authentication
+                # cursor.execute(sql,(kwargs.get('analysis'), str(os.getlogin()),time.strftime("%Y-%m-%d"),time.strftime("%H:%M:%S"),audio_id))
+                ### Option 2: Using Django Authentication
+                cursor.execute(sql,(kwargs.get('analysis'), str(username),time.strftime("%Y-%m-%d"),time.strftime("%H:%M:%S"),audio_id))
 
         connection.commit()
     
 
 
-def dbInsertLog(audio_id, params, analysis_name, process_time):
+def dbInsertLog(audio_id, params, analysis_name, process_time, username=os.getlogin()):
     connection= connectDB()
     
     with connection:
         with connection.cursor() as cursor:
             log_id = 'log_'+time.strftime("%Y%m%d_%H%M%S")
             sql = "INSERT INTO `analysis_process_log` (`log_id`,`audio_id`,`params`,`analysis_name`,`process_time`,`create_by`,`create_on`) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-            cursor.execute(sql, (log_id, audio_id, params, analysis_name, process_time, str(os.getlogin()),date.today()))
+            ### Option 1: Using Windows Authentication
+            # cursor.execute(sql, (log_id, audio_id, params, analysis_name, process_time, str(os.getlogin()),date.today()))
+            ### Option 2: Using Django Authentication
+            cursor.execute(sql, (log_id, audio_id, params, analysis_name, process_time, str(username),date.today()))
             
         connection.commit()
     

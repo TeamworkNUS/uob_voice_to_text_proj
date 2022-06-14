@@ -31,7 +31,7 @@
 {% comment %} <div class="col-1"></div> {% endcomment %}
 <div class="col-11"> 
     <div class="panel panel-default">  
-        <div class="panel-body">  
+        <div class="panel-body" style="min-width:1000px;">  
         
         <!-- ###### TODO: Add Filters / Search Function ###### -->
 
@@ -209,15 +209,20 @@
                 </table>
 
 
-                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#batchStart" {% if flag_analysisThread_active == True %} disabled {% endif %}>
-                    {% if flag_analysisThread_active == True %}
-                        <!-- Spinner: analysis in progress -->
-                        <span class="spinner-border spinner-border" role="status" aria-hidden="true"></span>
-                    {% else %}
-                        Start
-                    {% endif %}
-                </button>
-                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#batchDelete" >Delete</button>
+                <div class="d-flex justify-content-end">
+                    {% comment %} 
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#batchStart" {% if flag_analysisThread_currUser_active == True %} disabled {% endif %}>
+                        {% if flag_analysisThread_currUser_active == True %}
+                            <!-- Spinner: analysis in progress -->
+                            <span class="spinner-border spinner-border" role="status" aria-hidden="true"></span>
+                        {% else %}
+                            Start
+                        {% endif %}
+                    </button> 
+                    {% endcomment %}
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#batchStart" style="margin:0.3em">Start</button>
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#batchDelete" style="margin:0.3em">Delete</button>
+                </div>
 
                 <!-- Form for batch deletion -->
                 <form method="post" enctype="multipart/form-data" id="HistoryBatchDelete" name="HistoryBatchDelete">
@@ -308,6 +313,11 @@
             }
         }, 90000);  //refresh every 90s
     });
+
+    // ***** Change the refresh function of browser(F5) which will resubmit the form to redirect to the page ***** //
+    if (window.history.replaceState ){
+        window.history.replaceState( null, null, window.location.href );
+    }
 
     // *****  disabled "SD+STT" option to make it a necessary choice ***** //
     $(document).ready(function(){

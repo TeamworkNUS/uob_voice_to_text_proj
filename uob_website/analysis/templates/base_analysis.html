@@ -73,6 +73,25 @@
     {% block content %}
     {% endblock %}
 
+    {% block messages %}
+        {% if messages %}
+        <div id="djangoMessages" style="width:60%; margin-left:20%; margin-right:20%; position:absolute; bottom:0;">
+        {% for message in messages %}
+          <div name="djangoMessage" {% if message.tags == "error" %} class="alert alert-danger alert-dismissible fade show"{% else %} class="alert alert-{{ message.tags }} alert-dismissible fade show" {% endif %} role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+        </div>
+        {% endif %}
+        <script>
+          setTimeout(function(){
+            $("div[name='djangoMessage'").remove();
+          }, 5000);
+        </script>
+    {% endblock%}
+
+
   </main>
 
 {% comment %} <footer  class="footer navbar-fixed-bottom" >   {% endcomment %}

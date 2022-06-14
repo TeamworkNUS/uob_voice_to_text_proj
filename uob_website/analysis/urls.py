@@ -19,5 +19,7 @@ urlpatterns = [
     path('upload/', views.upload, name='upload'),
     # ex: /analysis/about/
     path('about/', views.about, name='about'),
+    # ex: /analysis/about/download_userguide/
+    path('about/download_userguide/', views.download_userguide, name='download_userguide'),
 
 ]

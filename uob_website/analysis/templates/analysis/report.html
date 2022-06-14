@@ -64,49 +64,55 @@
         </div>
         <div class="col-sm right">
             <a href="{% url 'analysis:stt_exportcsv' audio.audio_id %}"><button type="button" class="btn btn-primary" id='btn_download_stt'>Download to CSV</button></a>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="cb_hideEmptySlices">
+                <label class="form-check-label" for="cb_hideEmptySlices">Hide Empty Slices</label>
+            </div>
         </div>
     </div>
-    <table class="table table-hover">
-        <thead class="table-light">
-            <tr>
-                <th scope="col">Audio</th>
-                <th scope="col">SliceID</th>
-                <th scope="col">SpeakerLabel</th>
-                <th scope="col">Start</th>
-                <th scope="col">End</th>
-                <th scope="col">Duration</th>
-                <th scope="col">Text</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for slice in sttResult %}           
-            <tr>
-                <td>
-                    {% with slice.slice_path_last_folder as slice_folder %}
-                    <audio controls>
-                        {% if audio.audio_name == audio.upload_filename %}
-                            <source src="{{MEDIA_URL}}{{slice_folder}}/{{slice.slice_name}}" type="audio/wav">
-                            Your browser does not support the audio tag.
-                        {% elif  audio.upload_filename|slice:"-3:" == "mp3" %}
-                            <source src="{{MEDIA_URL}}{{slice_folder}}/{{slice.slice_name}}" type="audio/wav">
-                            Your browser does not support the audio tag.
-                        {% else %}
-                            <source src="{{MEDIA_URL}}{{zip_folder}}/{{slice_folder}}/{{slice.slice_name}}" type="audio/wav">
-                            Your browser does not support the audio tag.
-                        {% endif %}
-                    </audio>
-                    {% endwith %}
-                </td>
-                <td>{{ slice.slice_id }}</td>
-                <td>{{ slice.speaker_label }}</td>
-                <td>{{ slice.start_time }}</td>
-                <td>{{ slice.end_time }}</td>
-                <td>{{ slice.duration }}</td>
-                <td>{{ slice.text }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div>
+        <table class="table table-hover" id="tbl_rpt">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Audio</th>
+                    <th scope="col">SliceID</th>
+                    <th scope="col">SpeakerLabel</th>
+                    <th scope="col">Start</th>
+                    <th scope="col">End</th>
+                    <th scope="col">Duration</th>
+                    <th scope="col">Text</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for slice in sttResult %}           
+                <tr>
+                    <td>
+                        {% with slice.slice_folder as slice_folder %}
+                        <audio controls>
+                            {% if audio.audio_name == audio.upload_filename %}
+                                <source src="{{MEDIA_URL}}{{slice_folder}}/{{slice.slice_name}}" type="audio/wav">
+                                Your browser does not support the audio tag.
+                            {% elif  audio.upload_filename|slice:"-3:" == "mp3" %}
+                                <source src="{{MEDIA_URL}}{{slice_folder}}/{{slice.slice_name}}" type="audio/wav">
+                                Your browser does not support the audio tag.
+                            {% else %}
+                                <source src="{{MEDIA_URL}}{{zip_folder}}/{{slice_folder}}/{{slice.slice_name}}" type="audio/wav">
+                                Your browser does not support the audio tag.
+                            {% endif %}
+                        </audio>
+                        {% endwith %}
+                    </td>
+                    <td>{{ slice.slice_id }}</td>
+                    <td>{{ slice.speaker_label }}</td>
+                    <td>{{ slice.start_time }}</td>
+                    <td>{{ slice.end_time }}</td>
+                    <td>{{ slice.duration }}</td>
+                    <td>{{ slice.text }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 {% else %}
     <h2> Report:</h2>
     <p>Pending analysis report...</p>
@@ -130,6 +136,30 @@
     function scrollToTop() {
         $(document).scrollTop(0);
     };
+
+    // ***** Switch on/off hide empty text lines ***** //
+    $('#cb_hideEmptySlices').click(function(){
+        if ($('#cb_hideEmptySlices').is(":checked")){
+            $(this).prop("checked",true);
+            for(var i=0; i<{{sttResult.count}}; i++){
+                var col_text = $("#tbl_rpt").find("tr:eq("+i+") td:eq(6)").html();
+                if(col_text===''){
+                    $("#tbl_rpt").find("tr:eq("+i+")").hide();
+                };
+            };
+           
+        }
+        else{
+            $(this).prop("checked",false)
+            for(var i=0; i<{{sttResult.count}}; i++){
+                var col_text = $("#tbl_rpt").find("tr:eq("+i+") td:eq(6)").html();
+                if(col_text===''){
+                    $("#tbl_rpt").find("tr:eq("+i+")").show();
+                };
+            };
+        };
+    });
+
 </script>
 
 {% endblock %}
