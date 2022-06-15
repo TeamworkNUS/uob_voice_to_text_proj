@@ -149,7 +149,7 @@ def about(request):
 def history(request):
     
     ## Get analysis thread and running queue item for current Client user
-    t_list = [thread for thread in threading.enumerate() if thread.getName()=='dfAnalysisThread-main-'+request.user.username]
+    t_list = [thread for thread in threading.enumerate() if thread.getName()=='djAnalysisThread-main-'+request.user.username]
     t = t_list[0] if len(t_list)!=0 else None
     if t != None:
         analysisAudioQueue = t.input_queue

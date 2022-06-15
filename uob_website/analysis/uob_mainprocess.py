@@ -55,7 +55,7 @@ def process_upload_file(upload_filename, upload_filepath):
     
     
     elif upload_extension == 'zip' and upload_mime == 'application/zip':
-        zip_folder = os.path.join(upload_filepath, upload_purename)
+        zip_folder = os.path.join(upload_filepath, upload_purename).replace('\\','/')
         if not os.path.exists(zip_folder): 
             os.mkdir(zip_folder)
             
@@ -90,7 +90,7 @@ def process_upload_file(upload_filename, upload_filepath):
         
         
     elif upload_extension == 'rar' and upload_mime == 'application/x-rar-compressed':
-        zip_folder = os.path.join(upload_filepath, upload_purename)
+        zip_folder = os.path.join(upload_filepath, upload_purename).replace('\\','/')
         if not os.path.exists(zip_folder): 
             os.mkdir(zip_folder)
         
@@ -125,7 +125,7 @@ def process_upload_file(upload_filename, upload_filepath):
     
     
     elif upload_extension == '7z' and upload_mime == 'application/x-7z-compressed':
-        zip_folder = os.path.join(upload_filepath, upload_purename)
+        zip_folder = os.path.join(upload_filepath, upload_purename).replace('\\','/')
         if not os.path.exists(zip_folder): 
             os.mkdir(zip_folder)
         

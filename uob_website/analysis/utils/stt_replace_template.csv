@@ -1,3 +1,23 @@
 key,pos_before,pos_after,replace,flag_direct_replace
-uob,ADP;VERB,NOUN,your bb;your obey;you will be;youll be,
-uob,,,u o b;u o p,x
+uob,ADP;VERB;ADJ;NOUN,NOUN,your bb;your obey;you you will be;youll be;europey;you will be;u you b;you you b;you o beginning;you or b;your b;u v;you a b,
+uob,,,u o b;u o p;u b,x
+id,,,i d,x
+id,PRON,,i did,
+uob one account,,,uob want account;uob want accounts;uob one cat,x
+pm,,,p m,x
+am,,,a m,x
+rm,,,r m,x
+wealth banking,,,while banking;worth banking;whats banking;well banking;one banking,x
+employee id,,,employee i did,x
+sms,,,s m s,x
+mrt,,,m r t,x
+nric,,,n r i c;n i c,x
+ocbc,,,o c b c;o c d,x
+dbs,,,d b s,x
+boc,,,b o c;d o c,x
+posb,,,p o s b,x
+emc,,,e m c,x
+dob,,,d o b,x
+ep,,,e p,x
+sp,,,s p,x
+wp,,,w p,x
