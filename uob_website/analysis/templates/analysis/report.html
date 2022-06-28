@@ -5,25 +5,14 @@
 {% block title %}<h1>Report</h1>{% endblock %}
 
 {% block content %}
+<!-- ****** Audio Master Data (Header) ****** -->
 <h2> Audio:</h2>
 {% if audio %}
     <div class="container">
         <table class="table table-bordered .w-auto ">
             <tbody>
                 <tr>
-                    <th style="font-weight:normal;" >
-                        <span style="font-weight:bold">Upload filename: </span><br>
-                        {{audio.upload_filename}}<br>
-                        <span style="font-weight:bold">Audio: </span><br>
-                        {{audio.audio_name}}
-                    </th>
-                    <th>Audio Meta Params</th>
-                    <th>Creation</th>
-                    <th>Description</th>
-                </tr>
-                <tr>
-                    <td>
-                        {{audio.audio_file}}
+                    <th>
                         <audio controls>
                             {% if audio.audio_name == audio.upload_filename %}
                                 <source src="{{MEDIA_URL}}{{audio.audio_name}}" type="audio/wav">
@@ -36,6 +25,19 @@
                                 Your browser does not support the audio tag.
                             {% endif %}
                         </audio>
+                    </th>
+                    <th>Audio Meta Params</th>
+                    <th>Creation</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>
+                        <span style="font-weight:bold">Upload filename: </span><br>
+                        {{audio.upload_filename}}<br>
+                        <span style="font-weight:bold">Audio: </span><br>
+                        {{audio.audio_name}}<br>
+                        <span style="font-weight:bold">Audio ID: </span><br>
+                        {{audio.audio_id}}
                     </td>
                     <td>
                         <ul>
@@ -56,9 +58,9 @@
     <p>No audios are available.</p>
 {% endif %}
 
-
+<!-- ****** Report (Details) ****** -->
 {% if sttResult %}
-    <div class="row g-2">
+    <div class="row g-0">
         <div class="col-sm-10">
             <h2> Report:</h2>
         </div>
@@ -70,7 +72,8 @@
             </div>
         </div>
     </div>
-    <div>
+
+    <div class="row g-0">
         <table class="table table-hover" id="tbl_rpt">
             <thead class="table-light">
                 <tr>
@@ -81,6 +84,10 @@
                     <th scope="col">End</th>
                     <th scope="col">Duration</th>
                     <th scope="col">Text</th>
+                    {% if personalInfo %}
+                    <th scope="col">KYC</th>
+                    <th scope="col">PII</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -107,18 +114,63 @@
                     <td>{{ slice.start_time }}</td>
                     <td>{{ slice.end_time }}</td>
                     <td>{{ slice.duration }}</td>
-                    <td>{{ slice.text }}</td>
+                    <td width = "1000">{{ slice.text }}</td>
+                    {% if personalInfo %}
+                    {% for info in personalInfo %}
+                    {% if slice.slice_id == info.slice_id  %}
+                    <td>{{ info.is_kyc }}</td>
+                    {% endif %}
+                    {% if slice.slice_id == info.slice_id  %}
+                    <td>{{ info.is_pii }}</td>
+                    {% endif %}
+                    {% endfor %}
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 {% else %}
-    <h2> Report:</h2>
-    <p>Pending analysis report...</p>
+    <div class="row g-0">
+        <h2> Report:</h2>
+        <p>Pending analysis report...</p>
+    </div>
 {% endif %}
 
-<div id="id_scrollBtns" style="position:fixed; right:0; bottom:0"> 
+
+<!-- ****** Previous/Next Audio Report Buttons Group ****** -->
+<div class="row g-0">
+    <nav aria-label="Page navigation audio report">
+        <ul class="pagination justify-content-center">
+            <li class="page-item">
+                <span class="align-middle">
+                    Report {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} &nbsp;&nbsp;
+                </span>
+            </li>
+
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                {% with previous_audio=audioList|slice:page_obj.previous_page_number|slice:"-1:" %}
+                    <a class="page-link" href="{% url 'analysis:report' previous_audio.0.audio_id %}">Previous</a>
+                {% endwith %}
+            </li>
+            {% endif %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                {% with next_audio=audioList|slice:page_obj.next_page_number|slice:"-1:" %}
+                    <a class="page-link" href="{% url 'analysis:report' next_audio.0.audio_id %}">Next</a>
+                {% endwith %}
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+<br>
+
+<!-- ****** Scroll Buttons ****** -->
+<div id="id_scrollBtns" style="position:fixed; right:0; bottom:0; z-index:9999;"> 
     <button type="button" class="btn btn-secondary" onclick="scrollToTop()"><i class="bi bi-caret-up-fill"></i></button>
     <br>
     <button type="button" class="btn btn-secondary" onclick="scrollToBottom()"><i class="bi bi-caret-down-fill"></i></button>
@@ -141,7 +193,7 @@
     $('#cb_hideEmptySlices').click(function(){
         if ($('#cb_hideEmptySlices').is(":checked")){
             $(this).prop("checked",true);
-            for(var i=0; i<{{sttResult.count}}; i++){
+            for(var i=0; i<={{sttResult.count}}; i++){
                 var col_text = $("#tbl_rpt").find("tr:eq("+i+") td:eq(6)").html();
                 if(col_text===''){
                     $("#tbl_rpt").find("tr:eq("+i+")").hide();
@@ -151,7 +203,7 @@
         }
         else{
             $(this).prop("checked",false)
-            for(var i=0; i<{{sttResult.count}}; i++){
+            for(var i=0; i<={{sttResult.count}}; i++){
                 var col_text = $("#tbl_rpt").find("tr:eq("+i+") td:eq(6)").html();
                 if(col_text===''){
                     $("#tbl_rpt").find("tr:eq("+i+")").show();

@@ -9,6 +9,8 @@ Original file is located at
 import pandas as pd
 from pyemd import emd
 from gensim.models import Word2Vec
+
+from analysis import uob_extractmodel
 from .uob_init import (
     label_stop_words,
     label_checklist
@@ -31,7 +33,12 @@ try:
 except LookupError:
   nltk.download('punkt')
 
-def speaker_label_func(input, pretrained_model_path, checklist_path):
+def load_label_model(pretrained_model_path):
+    label_model = uob_extractmodel.get_model_labeling(pretrained_model_path)
+    return label_model
+    
+
+def speaker_label_func(input, label_model, checklist_path):
     def preprocess(doc):
         doc = str(doc).lower()  # Lower the text.
         doc = word_tokenize(doc)  # Split into words.
@@ -39,15 +46,15 @@ def speaker_label_func(input, pretrained_model_path, checklist_path):
         doc = [w for w in doc if w.isalpha()]  # Remove numbers and punctuation.
         return doc
 
-    # load model
-    wv_model = Word2Vec.load(pretrained_model_path)
+    # # load model
+    # wv_model = Word2Vec.load(pretrained_model_path)
+    wv_model = label_model
 
     # load template
     with open(checklist_path + label_checklist, "r", encoding='UTF-8') as f:
         template = preprocess(f.read())
 
     # load data
-    # input = pd.read_csv("output_3.csv")
     text0 = [w for l in input['text'][input['speaker_label'].astype(str).str.endswith('0')] for w in preprocess(l)]
     text1 = [w for l in input['text'][input['speaker_label'].astype(str).str.endswith('1')] for w in preprocess(l)]
 

@@ -5,6 +5,8 @@ drop table `uobweb`.`analysis_sttresult`;
 drop table `uobweb`.`analysis_audio`;
 drop table `uobweb`.`analysis_versions`;
 drop table `uobweb`.`analysis_process_log`;
+drop table `uobweb`.`analysis_analysisselection`;
+drop table `uobweb`.`analysis_personalinfo`;
 drop procedure `uobweb`.`Initialize_analysis_versions`;
 
 CREATE TABLE IF NOT EXISTS `analysis_audio` (
@@ -77,7 +79,14 @@ CREATE TABLE IF NOT EXISTS `analysis_analysisselection` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 
-
+ CREATE TABLE IF NOT EXISTS `analysis_personalinfo` (
+  `audio_slice_id` varchar(30) COLLATE utf8mb4_bin NOT NULL,
+  `audio_id` varchar(30) COLLATE utf8mb4_bin NOT NULL,
+  `slice_id` int NOT NULL,
+  `is_kyc` varchar(5) COLLATE utf8mb4_bin DEFAULT NULL,
+  `is_pii` varchar(5) COLLATE utf8mb4_bin DEFAULT NULL,
+  PRIMARY KEY (`audio_slice_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 -- -----------------------------------------------------------------------------------
 -- |                                Stored Procedures                                |
 -- -----------------------------------------------------------------------------------
@@ -105,6 +114,7 @@ END;
 CALL Initialize_analysis_version();
 --  analysis selection
 
-INSERT INTO `analysis_analysisselection` (`analysis_name`)
-     VALUES ('SD+STT');
+INSERT INTO `uobweb`.`analysis_analysisselection` (`analysis_name`)
+     VALUES ('SD+STT'),
+            ('KYC+PII');
 

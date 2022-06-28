@@ -4,10 +4,9 @@
 
 
 {% block head %}Login{% endblock %}
-
+{% block title %}<h1>Log In</h1>{% endblock %}
 {% block content %}
-<h2>Log In</h2>
-<form method="post" action="">  <!--{% url 'analysis:main'%}-->
+<form method="post" action="">
     {% csrf_token %}
     {{ form.as_p }}
     <button type="submit">Log In</button>

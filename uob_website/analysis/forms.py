@@ -1,6 +1,5 @@
 from django import forms
 from django.forms import widgets
-from matplotlib.pyplot import cla
 
 
 from .models import AnalysisSelection, Upload

@@ -7,30 +7,25 @@ Version     Date    Change_by   Description
 '''
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-import soundfile as sf
-import wave
-import json
-import malaya_speech
-from pyannote.audio import Pipeline
-
-from analysis import webrtcvad
-import librosa
-import struct
-from typing import Union, List, Optional
-from pathlib import Path
-from scipy.ndimage.morphology import binary_dilation
-from analysis.resemblyzer.hparams import *
-
 import os
 import re
 import numpy as np
 import pandas as pd
 import shutil
-from datetime import datetime
-import filetype
 import zipfile, rarfile, py7zr
+import soundfile as sf
+import json
+import librosa
+import struct
+from typing import Union, List, Optional
+from pathlib import Path
+from scipy.ndimage.morphology import binary_dilation
 
-from analysis import uob_noisereduce, uob_speakerdiarization, uob_audiosegmentation, uob_stt, uob_speechenhancement, uob_speechenhancement_new, uob_label, uob_storage, uob_superresolution, uob_utils
+
+from analysis.resemblyzer.hparams import *
+from analysis import webrtcvad
+
+from analysis import uob_noisereduce, uob_audiosegmentation, uob_speakerdiarization, uob_stt, uob_label, uob_storage, uob_utils, uob_personalInfo
 from analysis.uob_init import(
     stt_replace_template,
     profanity_list
@@ -158,13 +153,17 @@ def process_upload_file(upload_filename, upload_filepath):
     
     
     else:
+        try:
+            os.remove(upload_file)
+        except Exception as e:
+            print('Remove file', upload_file, 'failed because of Exception', type(e), e)
+        
         raise ValueError(
             "Upload file type is not supported. Please upload pure audio file (wav, mp3) or compressed file (zip, rar)"
         )
 
 
-
-def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, se_model=None, se_model_new=None, sr_model=None, vad_model=None, sv_model=None, pipeline=None, chunks:bool=True, reducenoise:bool=False, speechenhance:bool=False, speechenhance_new:bool=False, superresolution:bool=False, sd_proc='pyannoteaudio'):
+def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, chunks:bool=True, reducenoise:bool=False, sd_proc='resemblyzer'):
     ## Reduce noise
     if reducenoise == True:
         ## load nr models
@@ -186,64 +185,6 @@ def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, se_model=N
             sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
     
     
-    ## Speech Enhancement
-    if speechenhance == True:
-        y = malaya_speech_enhance(y, sr, se_model=se_model)
-        
-        if chunks:
-            namef, namec = os.path.splitext(audioname)
-            namef_other, namef_index = namef.rsplit("_", 1)
-            namef_index = int(namef_index)
-            namec = namec[1:]
-            audioname = '%s_%04d.%s'%(namef_other+'_se',namef_index,namec)
-            sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
-        else:
-            namef, namec = os.path.splitext(audioname)
-            namec = namec[1:]
-            audioname = '%s.%s'%(namef+'_se',namec)
-            sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
-    
-    
-    ## Speech Enhancement new
-    if speechenhance_new == True:
-        y = malaya_speech_enhance_new(y, sr, se_model_new = se_model_new)
-        
-        if chunks:
-            namef, namec = os.path.splitext(audioname)
-            namef_other, namef_index = namef.rsplit("_", 1)
-            namef_index = int(namef_index)
-            namec = namec[1:]
-            audioname = '%s_%04d.%s'%(namef_other+'_se',namef_index,namec)
-            sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
-        else:
-            namef, namec = os.path.splitext(audioname)
-            namec = namec[1:]
-            audioname = '%s.%s'%(namef+'_se',namec)
-            sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
-    
-    
-    ## Super Resolution
-    if superresolution == True:
-        #! 1.Currently we only supported 4x super resolution, if input sample rate is 16k, output will become 16k * 4.
-        #! 2.We trained on 11025 for input sample rate, 44100 for output sample rate.
-        reduction_factor = 4
-        y_, sr_ = malaya_speech.load(os.path.join(audiopath,audioname), sr = sr // reduction_factor)
-        y = malaya_super_resolution(y_, sr_, sr_model=sr_model)
-        # y = malaya_super_resolution(y, sr, sr_model=sr_model)
-        
-        if chunks:
-            namef, namec = os.path.splitext(audioname)
-            namef_other, namef_index = namef.rsplit("_", 1)
-            namef_index = int(namef_index)
-            namec = namec[1:]
-            audioname = '%s_%04d.%s'%(namef_other+'_sr',namef_index,namec)
-            sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?
-        else:
-            namef, namec = os.path.splitext(audioname)
-            namec = namec[1:]
-            audioname = '%s.%s'%(namef+'_sr',namec)
-            sf.write(os.path.join(audiopath,audioname), y, sr) # TODO: how to save wav? delete the file after done?        
-    
     if chunks:
         audiopath = audiopath + '_processed'
         if not os.path.exists(audiopath): 
@@ -254,19 +195,11 @@ def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, se_model=N
     print('audiopath: ',audiopath)
     
     ## Speaker Diarization
-    if sd_proc == 'malaya':
-        sd_result = malaya_sd(y, sr, audioname, audiopath, vad_model, sv_model)
-    elif sd_proc == 'pyannoteaudio':
-        sd_result = pyannoteaudio_sd(audioname, audiopath, audiofile, pipeline)
-    elif sd_proc == 'resemblyzer':
+    if sd_proc == 'resemblyzer':
         sd_result = resemblyzer_sd(audioname, audiopath, audiofile)
     else:
         raise Exception('!!! Please input correct SD model: [pyannoteaudio, malaya, resemblyzer]')
     
-    
-    # ## Delete reduced noise temp file
-    # if os.path(audiopath+'/noisereduced.wav'):
-    #     os.remove(audiopath+'/noisereduced.wav')
 
     ## Add chunk filename
     if chunks == True:
@@ -279,9 +212,12 @@ def sd_process(y, sr, audioname, audiopath, audiofile, nr_model=None, se_model=N
 
     return sd_result, audioname, audiopath
 
-def stt_process(sttModel, slices_path, rec, sr):
-    if sttModel == 'vosk':
-        stt_result = uob_stt.stt_conversion_vosk(slices_path, rec, sr)
+
+def stt_process(sttModel, slices_path, rec, **kwargs):
+
+    if sttModel == 'malaya-wav2vec2':
+        model = kwargs.get('wav2vec2_model')
+        stt_result = uob_stt.stt_conversion_malaya_wav2vec2(slices_path, rec, model)
     elif sttModel == 'malaya-speech':
         stt_result = uob_stt.stt_conversion_malaya_speech(slices_path, rec)
 
@@ -320,8 +256,9 @@ def stt_process(sttModel, slices_path, rec, sr):
         
     return stt_result
 
-def speaker_label_func(transactionDf, pretrained_model_path, checklist_path):
-    label_result = uob_label.speaker_label_func(transactionDf, pretrained_model_path, checklist_path)
+
+def speaker_label_process(transactionDf, label_model, checklist_path):
+    label_result = uob_label.speaker_label_func(transactionDf, label_model, checklist_path)
     return label_result
 
 
@@ -344,120 +281,6 @@ def malaya_reduce_noise(y, sr, nr_model):
     noisereduced_audio = uob_noisereduce.output_voice_pipeline(y, sr, nr_model, frame_duration_ms=15000)
     y = noisereduced_audio
     return y
-
-
-def malaya_speech_enhance(y, sr, se_model):
-    ### * Enhance the Speech
-    speechenhanced_audio =uob_speechenhancement.get_se_output(y, sr, se_model)
-    y = speechenhanced_audio
-    return y
-
-def malaya_speech_enhance_new(y, sr, se_model_new):
-    ### * Enhance the Speech
-    speechenhanced_audio =uob_speechenhancement_new.get_se_output(y, sr, se_model_new)
-    y = speechenhanced_audio
-    return y
-    
-def malaya_super_resolution(y, sr, sr_model):
-    ### * Convert to Super Resolution Audio
-    superresolution_audio =uob_superresolution.get_sr_output(y, sr, sr_model)
-    y = superresolution_audio
-    return y    
-
-
-def malaya_sd(y, sr, audioname, audiopath, vad_model, sv_model):  
-    '''
-    INPUT
-        y: waveform of audio
-        sr: sample rate
-        audiopath: the path for saving sd result in csv
-        sv_model: speaker vector model
-    OUTPUT
-        diarization_result-->List[(Tuple, str)]: timestamp, duration, cluster label
-    '''
-    ### * Speaker Diarization
-    ## Load SD model + VAD
-    # model_speakernet, model_vggvox2 = uob_speakerdiarization.load_speaker_vector()
-    grouped_vad = uob_speakerdiarization.load_vad(y, sr, vad_model = vad_model, frame_duration_ms=30, threshold_to_stop=0.5)
-    speaker_vector = sv_model #model_speakernet
-
-    
-    ## Diarization
-    # ?: choose a SD function below, comment others
-    # result_sd = uob_speakerdiarization.speaker_similarity(speaker_vector, grouped_vad)
-    # result_sd = uob_speakerdiarization.affinity_propagation(speaker_vector, grouped_vad)
-    result_sd = uob_speakerdiarization.spectral_clustering(speaker_vector, grouped_vad, min_clusters=2, max_clusters=2) #!p_percentile issue
-    # result_sd = uob_speakerdiarization.n_speakers_clustering(speaker_vector, grouped_vad, n_speakers=2, model='kmeans') #['spectralcluster','kmeans']
-    # result_sd = uob_speakerdiarization.speaker_change_detection(speaker_vector, grouped_vad, y, sr,frame_duration_ms=500, 
-    #                                                           min_clusters = 2, max_clusters = 2) #!p_percentile issue
-    
-    ## Visualization #TODO: to comment for production
-    uob_speakerdiarization.visualization_sd(y, grouped_vad, sr, result_sd)
-    
-    
-    ## Get timestamp
-    grouped_result = uob_speakerdiarization.get_timestamp(result_diarization = result_sd)
-    diarization_result = grouped_result
-    
-    ## Print & Save result to csv
-    result_timestamps = []
-    result_timestamp = ['index','starttime','endtime','duration','speaker_label']
-    result_timestamps.append(result_timestamp)
-    print('Index\tStart\tEnd\tDuration\tSpeaker')
-    for i in grouped_result:
-        index = grouped_result.index(i) + 1
-        end = i[0].timestamp+i[0].duration
-        print(str(index)+'\t'+str(i[0].timestamp)+'\t'+str(end)+'\t'+str(i[0].duration)+'\t'+str(i[1]))
-
-        result_timestamp = [int(index), float(i[0].timestamp), float(end), float(i[0].duration),str(i[1])]
-        result_timestamps.append(result_timestamp)
-
-    # # Remove "Save" after integration
-    # namef, namec = os.path.splitext(audioname)
-    # namec = namec[1:]
-    # save_name = '%s_%s.%s'%(namef, datetime.now().strftime('%y%m%d-%H%M%S'), 'csv')
-    # np.savetxt(os.path.join(audiopath,save_name), result_timestamps,
-    #            delimiter=',', fmt='% s')
-    
-    # return diarization_result
-    return result_timestamps
-
-
-
-def pyannoteaudio_sd(audioname, audiopath, audiofile, pa_pipeline):
-    '''
-    INPUT
-        audioname: name.wav
-        audiofile: path/name.wav
-        pa_pipeline: pyannote.audio pretrained pipeline for handling speaker diarization
-    OUTPUT
-        diarization_result: speaker diarization result, including timestamp, duration and cluster label
-    '''
-    ## Process
-    diarization_result = uob_speakerdiarization.pyannoteaudio_speaker_diarization(audiofile, pa_pipeline)
-    
-    ## Print & Save time period & speaker label
-    result_timestamps = []
-    result_timestamp = ['index','starttime','endtime','duration','speaker_label']
-    result_timestamps.append(result_timestamp)
-    index = 0
-    print('Index\tStart\tEnd\tDuration\tSpeaker')
-    for turn, _, speaker in diarization_result.itertracks(yield_label=True):
-        # speaker speaks between turn.start and turn.end
-        index += 1
-        print(index, turn.start, turn.end, turn.end-turn.start, speaker)
-        result_timestamp = [int(index), float(turn.start), float(turn.end), float(turn.end-turn.start), str(speaker)]
-        result_timestamps.append(result_timestamp)
-
-    # # Remove "Save" after integration
-    # namef, namec = os.path.splitext(audioname)
-    # namec = namec[1:]
-    # save_name = '%s_%s.%s'%(namef, datetime.now().strftime('%y%m%d-%H%M%S'), 'csv')
-    # np.savetxt(os.path.join(audiopath,save_name), result_timestamps,
-    #            delimiter=',', fmt='% s')
-    
-    # return diarization_result
-    return result_timestamps
 
 
 
@@ -578,16 +401,13 @@ def resemblyzer_sd(audioname, audiopath, audiofile):
 
 
 def cut_audio_by_timestamps(start_end_list:list, audioname, audiofile, part_path):
-    # index = 0
     for row in start_end_list:
-        # print(', '.join(row))
         index=row[0]
         start=row[1]
         end=row[2]
         # dur=float(row[3])
         # label=row[4]
         
-        # index += 1
         namef, namec = os.path.splitext(audioname)
         namec = namec[1:]
         part_name = '%s_%s.%s'%(namef, str(index), namec)

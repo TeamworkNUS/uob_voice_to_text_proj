@@ -43,7 +43,7 @@ class STTresult(models.Model):
         managed = False
     
     audio_slice_id = models.CharField(primary_key=True,max_length=30)
-    audio_id = models.CharField(max_length=30) #models.ForeignKey(Audio, on_delete=models.CASCADE)# 
+    audio_id = models.CharField(max_length=30)
     slice_id = models.IntegerField() 
     start_time = models.FloatField(null=False,default=0)
     end_time = models.FloatField(null=False,default=0)
@@ -85,7 +85,6 @@ class AnalysisSelection(models.Model):
     class Meta:
         managed=False
     analysisSelection_id = models.AutoField(primary_key=True)
-    # analysisSelection_id = models.IntegerField(primary_key=True)
     analysis_name = models.CharField(max_length=50,null=False, default="None", unique=True)
     
     def __str__(self):
@@ -112,20 +111,32 @@ class Upload(models.Model):
     description = models.CharField(max_length=255, blank=True)
     document = models.FileField(blank=True, null=False, upload_to=MEDIA_ROOT)
     uploaded_by = models.CharField(max_length=50,null=False,default=str(os.getlogin()))
-    uploaded_at = models.DateTimeField(null=False, auto_now_add=True) #default=date.today()
+    uploaded_at = models.DateTimeField(null=False, auto_now_add=True)
     
     def __str__(self):
         return self.description
 
 
-class Version(models.Model):
+# class Version(models.Model):
+#     class Meta:
+#         managed=False
+#     version_id = models.AutoField(primary_key=True)
+#     version_name = models.CharField(max_length=30, unique=True)
+#     version_value = models.CharField(max_length=30)
+    
+#     def __str__(self):
+#         return self.version_name+": "+self.version_value
+  
+    
+class PersonalInfo(models.Model):
     class Meta:
-        managed=False
-    version_id = models.AutoField(primary_key=True)
-    version_name = models.CharField(max_length=30, unique=True)
-    version_value = models.CharField(max_length=30)
+        unique_together=('audio_id','slice_id')
+        managed = False
     
-    def __str__(self):
-        return self.version_name+": "+self.version_value
-    
-        
+    audio_slice_id = models.CharField(primary_key=True,max_length=30)
+    audio_id = models.CharField(max_length=30) 
+    slice_id = models.IntegerField() 
+    is_kyc = models.CharField(max_length=5)
+    is_pii = models.CharField(max_length=5)
+     
+                

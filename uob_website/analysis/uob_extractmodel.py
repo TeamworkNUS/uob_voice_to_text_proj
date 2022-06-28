@@ -1,6 +1,13 @@
 import tensorflow as tf
 import os
 import logging
+import torch
+from torch import nn
+import numpy as np
+import librosa
+from time import perf_counter as timer
+from typing import Union, List
+from pathlib import Path
 
 import malaya_speech
 from malaya_speech.utils import (
@@ -9,38 +16,18 @@ from malaya_speech.utils import (
     generate_session,
     nodes_session,
 )
-
-# from malaya_speech.supervised import unet, classification
-from malaya_speech.model.tf import UNET, UNETSTFT, UNET1D
-
-from malaya_speech.utils import featurization
-from malaya_speech.config import (
-    speakernet_featurizer_config as speakernet_config,
-)
-from malaya_speech.model.tf import (
-    Speakernet,
-    Speaker2Vec,
-    SpeakernetClassification,
-    MarbleNetClassification,
-    Classification,
-)
-
+from malaya_speech.model.tf import UNETSTFT
 from malaya_speech.path import TRANSDUCER_VOCABS, TRANSDUCER_MIXED_VOCABS
 from malaya_speech.utils.subword import load as subword_load
 from malaya_speech.utils.tf_featurization import STTFeaturizer
 from malaya_speech.utils.read import load as load_wav
-from malaya_speech.model.tf import Transducer, Wav2Vec2_CTC, TransducerAligner
+from malaya_speech.model.tf import Transducer, TransducerAligner
 
-import torch
-from torch import nn
-import numpy as np
-import librosa
-from time import perf_counter as timer
-from typing import Union, List
-from pathlib import Path
+
+from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
+from gensim.models import Word2Vec
+
 from analysis.resemblyzer.hparams import *
-
-from vosk import Model, KaldiRecognizer, SetLogLevel
 
 from .uob_init import pretrained_model_path
 
@@ -104,13 +91,11 @@ def get_model_noisereduce(pretrained_model_path = pretrained_model_path, model='
         path = os.path.join(module, f'{model}-quantized')
         quantized_path = os.path.join(path, 'model.pb')
         modelfile = os.path.join(pretrained_model_path, quantized_path).replace('\\', '/')
-        # print('true')
+
     else:
         path = os.path.join(module, model, 'model.pb')
         modelfile = os.path.join(pretrained_model_path, path).replace('\\', '/')
-        # print('false')
-    
-    # print(modelfile)
+
     ## Check if model.pb exists
     path_dict = check_file(
                             model=model,
@@ -126,424 +111,8 @@ def get_model_noisereduce(pretrained_model_path = pretrained_model_path, model='
     
     model_object = load_stft(modelfile=modelfile, model=model, module=module, instruments=['voice', 'noise'], quantized=quantized) #
 
-    # print(model_object)
-
-    # ? Test
-    # y, sr = malaya_speech.load('The-Singaporean-White-Boy_first60s.wav',sr=44100)
-    # y = uob_noisereduce.output_voice_pipeline(y, sr, model_object, frame_duration_ms=15000)
-    # print(y)
-
     return model_object
 
-
-def get_model_speechenhancement(pretrained_model_path = pretrained_model_path, model='unet', quantized:bool=False, **kwargs):
-    '''
-    available models:
-        * ``'unet'`` - pretrained UNET Speech Enhancement.
-        * ``'resnet-unet'`` - pretrained resnet-UNET Speech Enhancement.
-        * ``'resnext-unet'`` - pretrained resnext-UNET Speech Enhancement.
-    '''
-    _sampling_availability = {
-        'unet': {
-            'Size (MB)': 40.7,
-            'Quantized Size (MB)': 10.3,
-            'SDR': 9.877178,
-            'ISR': 15.916217,
-            'SAR': 13.709130,
-        },
-        'resnet-unet': {
-            'Size (MB)': 36.4,
-            'Quantized Size (MB)': 9.29,
-            'SDR': 9.43617,
-            'ISR': 16.86103,
-            'SAR': 12.32157,
-        },
-        'resnext-unet': {
-            'Size (MB)': 36.1,
-            'Quantized Size (MB)': 9.26,
-            'SDR': 9.685578,
-            'ISR': 16.42137,
-            'SAR': 12.45115,
-        },
-    }
-    
-    ## Check model availability
-    model = model.lower()
-    if model not in _sampling_availability:
-        raise ValueError(
-            'model not supported, please check supported models from `malaya_speech.speech_enhancement.available_deep_enhance()`.'
-        )
-
-    ## Declare model file
-    module = 'speech-enhancement'
-    path = pretrained_model_path
-    if quantized:
-        path = os.path.join(module, f'{model}-quantized')
-        quantized_path = os.path.join(path, 'model.pb')
-        modelfile = os.path.join(pretrained_model_path, quantized_path).replace('\\', '/')
-        # print('true')
-    else:
-        path = os.path.join(module, model, 'model.pb')
-        modelfile = os.path.join(pretrained_model_path, path).replace('\\', '/')
-        # print('false')
-    
-    # print(modelfile)
-    ## Check if model.pb exists
-    path_dict = check_file(
-                            model=model,
-                            base_path=pretrained_model_path,
-                            module=module,
-                            keys={'model': 'model.pb'},
-                            validate=True,
-                            quantized=quantized,
-                            **kwargs,
-                            )
-    print(path_dict)
-    
-    model_object = load_1d(
-        modelfile=modelfile,
-        model=model,
-        module=module,
-        quantized=quantized,
-        **kwargs
-    )
-    
-    return model_object
-
-
-def get_model_superresolution(pretrained_model_path = pretrained_model_path, model='srgan-256', quantized:bool=False, **kwargs):
-    _availability = {
-    'srgan-128': {
-        'Size (MB)': 7.37,
-        'Quantized Size (MB)': 2.04,
-        'SDR': 17.03345,
-        'ISR': 22.33026,
-        'SAR': 17.454372,
-    },
-    'srgan-256': {
-        'Size (MB)': 29.5,
-        'Quantized Size (MB)': 7.55,
-        'SDR': 16.34558,
-        'ISR': 22.067493,
-        'SAR': 17.02439,
-    },
-    }
-    model = model.lower()
-    if model not in _availability:
-        raise ValueError(
-            'model not supported, please check supported models from `malaya_speech.super_resolution.available_model()`.'
-        )
-    # return unet.load_1d(
-    #     model=model,
-    #     module='super-resolution',
-    #     quantized=quantized,
-    #     **kwargs
-    # )
-        ## Declare model file
-    module = 'super-resolution'
-    path = pretrained_model_path
-    if quantized:
-        path = os.path.join(module, f'{model}-quantized')
-        quantized_path = os.path.join(path, 'model.pb')
-        modelfile = os.path.join(pretrained_model_path, quantized_path).replace('\\', '/')
-        # print('true')
-    else:
-        path = os.path.join(module, model, 'model.pb')
-        modelfile = os.path.join(pretrained_model_path, path).replace('\\', '/')
-        # print('false')
-    
-    # print(modelfile)
-    ## Check if model.pb exists
-    path_dict = check_file(
-                            model=model,
-                            base_path=pretrained_model_path,
-                            module=module,
-                            keys={'model': 'model.pb'},
-                            validate=True,
-                            quantized=quantized,
-                            **kwargs,
-                            )
-    print(path_dict)
-    
-    model_object = load_1d(
-        modelfile=modelfile,
-        model=model,
-        module=module,
-        quantized=quantized,
-        **kwargs
-    )
-    
-    return model_object
-    # model = malaya_speech.super_resolution.deep_model(model = 'srgan-256')
-
-def get_model_vad(pretrained_model_path = pretrained_model_path, model = 'vggvox-v2', quantized:bool=False, **kwargs):
-    '''
-    available models:
-        * ``'vggvox-v1'`` - finetuned VGGVox V1.
-        * ``'vggvox-v2'`` - finetuned VGGVox V2.
-        * ``'speakernet'`` - finetuned SpeakerNet.
-        * ``'marblenet-factor1'`` - Pretrained MarbleNet * factor 1.
-        * ``'marblenet-factor3'`` - Pretrained MarbleNet * factor 3.
-        * ``'marblenet-factor5'`` - Pretrained MarbleNet * factor 5.
-    '''
-    
-    _availability = {
-        'vggvox-v1': {
-            'Size (MB)': 70.8,
-            'Quantized Size (MB)': 17.7,
-            'Accuracy': 0.80984375,
-        },
-        'vggvox-v2': {
-            'Size (MB)': 31.1,
-            'Quantized Size (MB)': 7.92,
-            'Accuracy': 0.8196875,
-        },
-        'speakernet': {
-            'Size (MB)': 20.3,
-            'Quantized Size (MB)': 5.18,
-            'Accuracy': 0.7340625,
-        },
-        'marblenet-factor1': {
-            'Size (MB)': 0.526,
-            'Quantized Size (MB)': 0.232,
-            'Accuracy': 0.8491875,
-        },
-        'marblenet-factor3': {
-            'Size (MB)': 3.21,
-            'Quantized Size (MB)': 0.934,
-            'Accuracy': 0.83855625,
-        },
-        'marblenet-factor5': {
-            'Size (MB)': 8.38,
-            'Quantized Size (MB)': 2.21,
-            'Accuracy': 0.843540625,
-        }
-    }
-
-    ## Check model availability
-    model = model.lower()
-    if model not in _availability:
-        raise ValueError(
-            'model not supported, please check supported models from `malaya_speech.vad.available_model()`.'
-        )
-    
-    ## Declare model file
-    module='vad'
-    path = pretrained_model_path
-    if quantized:
-        path = os.path.join(module, f'{model}-quantized')
-        quantized_path = os.path.join(path, 'model.pb')
-        modelfile = os.path.join(pretrained_model_path, quantized_path).replace('\\', '/')
-        # print('true')
-    else:
-        path = os.path.join(module, model, 'model.pb')
-        modelfile = os.path.join(pretrained_model_path, path).replace('\\', '/')
-        # print('false')
-    
-    # print(modelfile)
-    ## Check if model.pb exists
-    path_dict = check_file(
-                                model=model,
-                                base_path=pretrained_model_path,
-                                module=module,
-                                keys={'model': 'model.pb'},
-                                validate=True,
-                                quantized=quantized,
-                                **kwargs,
-                            )
-    print(path_dict)
-    
-    settings = {
-        'vggvox-v1': {'frame_len': 0.005, 'frame_step': 0.0005},
-        'vggvox-v2': {'hop_length': 24, 'concat': False, 'mode': 'eval'},
-        'speakernet': {'frame_ms': 20, 'stride_ms': 1.0},
-        'marblenet-factor1': {'feature_type': 'mfcc'},
-        'marblenet-factor3': {'feature_type': 'mfcc'},
-        'marblenet-factor5': {'feature_type': 'mfcc'},
-    }
-    
-
-    model_object = load(
-        modelfile = modelfile,
-        model=model,
-        module=module,
-        extra=settings[model],
-        label=[False, True],
-        quantized=quantized,
-        **kwargs
-    )
-    
-    # ? Test
-    # y, sr = malaya_speech.load('The-Singaporean-White-Boy_first60s.wav',sr=44100)
-    # grouped_vad = uob_speakerdiarization.load_vad(y, sr, vad_model = model_object, frame_duration_ms=30, threshold_to_stop=0.3)
-    # print(grouped_vad)
-    
-    return model_object
-
-
-
-
-def get_model_speaker_vector(pretrained_model_path = pretrained_model_path, model: str = 'speakernet', quantized: bool = False, **kwargs):
-    '''
-    available models:
-        * ``'vggvox-v1'`` - VGGVox V1, embedding size 1024, exported from https://github.com/linhdvu14/vggvox-speaker-identification
-        * ``'vggvox-v2'`` - VGGVox V2, embedding size 512, exported from https://github.com/WeidiXie/VGG-Speaker-Recognition
-        * ``'deep-speaker'`` - Deep Speaker, embedding size 512, exported from https://github.com/philipperemy/deep-speaker
-        * ``'speakernet'`` - SpeakerNet, embedding size 7205, exported from https://github.com/NVIDIA/NeMo/tree/main/examples/speaker_recognition
-    '''
-    
-    _availability = {
-        'deep-speaker': {
-            'Size (MB)': 96.7,
-            'Quantized Size (MB)': 24.4,
-            'Embedding Size': 512,
-            'EER': 0.2187,
-        },
-        'vggvox-v1': {
-            'Size (MB)': 70.8,
-            'Quantized Size (MB)': 17.7,
-            'Embedding Size': 1024,
-            'EER': 0.1407,
-        },
-        'vggvox-v2': {
-            'Size (MB)': 43.2,
-            'Quantized Size (MB)': 7.92,
-            'Embedding Size': 512,
-            'EER': 0.0445,
-        },
-        'speakernet': {
-            'Size (MB)': 35,
-            'Quantized Size (MB)': 8.88,
-            'Embedding Size': 7205,
-            'EER': 0.02122,
-        },
-    }
-    
-    ## Check model availability
-    model = model.lower()
-    if model not in _availability:
-        raise ValueError(
-            'model not supported, please check supported models from `malaya_speech.speaker_vector.available_model()`.'
-        )
-    
-    ## Declare model file
-    module='speaker-vector'
-    path = pretrained_model_path
-    if quantized:
-        path = os.path.join(module, f'{model}-quantized')
-        quantized_path = os.path.join(path, 'model.pb')
-        modelfile = os.path.join(pretrained_model_path, quantized_path).replace('\\', '/')
-        # print('true')
-    else:
-        path = os.path.join(module, model, 'model.pb')
-        modelfile = os.path.join(pretrained_model_path, path).replace('\\', '/')
-        # print('false')
-    
-    # print(modelfile)
-    ## Check if model.pb exists
-    path_dict = check_file(
-                                    model=model,
-                                    base_path=pretrained_model_path,
-                                    module=module,
-                                    keys={'model': 'model.pb'},
-                                    validate=True,
-                                    quantized=quantized,
-                                    **kwargs,
-                                )
-    print(path_dict)
-    
-    
-    
-    model_object = load(
-        modelfile=modelfile,
-        model=model,
-        module=module,
-        extra={},
-        label={},
-        quantized=quantized,
-        **kwargs
-    )
-    
-    return model_object
-
-
-def get_model_speaker_change(pretrained_model_path = pretrained_model_path, model: str = 'speakernet', quantized: bool = False, **kwargs):
-    '''
-    available models:
-        * ``'vggvox-v2'`` - finetuned VGGVox V2.
-        * ``'speakernet'`` - finetuned SpeakerNet.
-    '''
-    
-    _availability = {
-        'vggvox-v2': {
-            'Size (MB)': 31.1,
-            'Quantized Size (MB)': 7.92,
-            'Accuracy': 0.63979,
-        },
-        'speakernet': {
-            'Size (MB)': 20.3,
-            'Quantized Size (MB)': 5.18,
-            'Accuracy': 0.64524,
-        },
-    }
-    ## Check model availability
-    model = model.lower()
-    if model not in _availability:
-        raise ValueError(
-            'model not supported, please check supported models from `malaya_speech.speaker_change.available_model()`.'
-        )
-
-    ## Declare model file
-    module='speaker-change'
-    path = pretrained_model_path
-    if quantized:
-        path = os.path.join(module, f'{model}-quantized')
-        quantized_path = os.path.join(path, 'model.pb')
-        modelfile = os.path.join(pretrained_model_path, quantized_path).replace('\\', '/')
-        # print('true')
-    else:
-        path = os.path.join(module, model, 'model.pb')
-        modelfile = os.path.join(pretrained_model_path, path).replace('\\', '/')
-        # print('false')
-    
-    # print(modelfile)
-    ## Check if model.pb exists
-    path_dict = check_file(
-                                    model=model,
-                                    base_path=pretrained_model_path,
-                                    module=module,
-                                    keys={'model': 'model.pb'},
-                                    validate=True,
-                                    quantized=quantized,
-                                    **kwargs,
-                                )
-    print(path_dict)
-    
-    
-    settings = {
-        'vggvox-v2': {'hop_length': 50, 'concat': False, 'mode': 'eval'},
-        'speakernet': {'frame_ms': 20, 'stride_ms': 2},
-    }
-
-    model_object = load(
-        modelfile=modelfile,
-        model=model,
-        module=module,
-        extra=settings[model],
-        label=[False, True],
-        quantized=quantized,
-        **kwargs
-    )
-    
-    return model_object
-
-
-def get_model_stt_vosk(pretrained_model_path=pretrained_model_path, sr=16000):
-    # sample_rate=sr
-    model = Model(os.path.join(pretrained_model_path,'stt/model')) #Model("model")
-    rec = KaldiRecognizer(model, sr)
-    
-    return model, rec
 
 def get_model_stt_malaya_speech(
     pretrained_model_path = pretrained_model_path, 
@@ -665,16 +234,17 @@ def get_model_stt_malaya_speech(
     module='speech-to-text-transducer'
     path = os.path.join(module, model, 'model.pb')
     modelfile = os.path.join(pretrained_model_path, path).replace('\\', '/')
-    # path_dict = check_file(
-    #                         model=model,
-    #                         base_path=pretrained_model_path,
-    #                         module=module,
-    #                         keys={'model': 'model.pb'},
-    #                         validate=True,
-    #                         quantized=quantized,
-    #                         **kwargs,
-    #                     )
-    # print(path_dict)
+    path_dict = check_file(
+                            model=model,
+                            base_path=pretrained_model_path,
+                            module=module,
+                            keys={'model': 'model.pb'},
+                            validate=True,
+                            quantized=quantized,
+                            **kwargs,
+                        )
+    print(path_dict)
+    
     return transducer_load(
         modelfile=modelfile, 
         model=model,
@@ -683,15 +253,24 @@ def get_model_stt_malaya_speech(
         quantized=quantized,
         **kwargs
     )
-    # return stt.transducer_load(
-    #     model=model,
-    #     module='speech-to-text-transducer',
-    #     languages=_transducer_availability[model]['Language'],
-    #     quantized=quantized,
-    #     **kwargs
-    # )
 
 
+def get_model_stt_malaya_wav2vec2(
+    pretrained_model_path = pretrained_model_path, 
+    model='malaya-wav2vec2',  
+    **kwargs):
+
+    modelfile = os.path.join(pretrained_model_path, model)
+    processor = Wav2Vec2Processor.from_pretrained(modelfile) #here put the path to the fine-tuned model
+    model = Wav2Vec2ForCTC.from_pretrained(modelfile) #here put the path to the fine-tuned model
+    
+    return processor, model
+    
+
+def get_model_labeling(pretrained_model_path = pretrained_model_path, **kwargs):
+    modelpath = os.path.join(pretrained_model_path,'label/label_wordvector_model').replace("\\","/")
+    wv_model = Word2Vec.load(modelpath)
+    return wv_model
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -720,61 +299,6 @@ def load_stft(modelfile, model, module, instruments, quantized=False, **kwargs):
         name=module,
     )
 
-
-
-def load(modelfile, model, module, extra, label, quantized=False, **kwargs):
-
-    # path = check_file(
-    #     file=model,
-    #     module=module,
-    #     keys={'model': 'model.pb'},
-    #     quantized=quantized,
-    #     **kwargs,
-    # )
-    g = load_graph(modelfile, **kwargs)
-
-    vectorizer_mapping = {
-        'vggvox-v1': featurization.vggvox_v1,
-        'vggvox-v2': featurization.vggvox_v2,
-        'deep-speaker': featurization.deep_speaker,
-        'speakernet': featurization.SpeakerNetFeaturizer(
-            **{**speakernet_config, **extra}
-        ),
-    }
-
-    if module == 'speaker-vector':
-        if model == 'speakernet':
-            model_class = Speakernet
-        else:
-            model_class = Speaker2Vec
-    else:
-        if model == 'speakernet':
-            model_class = SpeakernetClassification
-        elif 'marblenet' in model:
-            model_class = MarbleNetClassification
-        else:
-            model_class = Classification
-
-    if model == 'speakernet':
-        inputs = ['Placeholder', 'Placeholder_1']
-    elif 'marblenet' in model:
-        inputs = ['X_placeholder', 'X_len_placeholder']
-    else:
-        inputs = ['Placeholder']
-    outputs = ['logits']
-
-    input_nodes, output_nodes = nodes_session(g, inputs, outputs)
-
-    return model_class(
-        input_nodes=input_nodes,
-        output_nodes=output_nodes,
-        vectorizer=vectorizer_mapping.get(model),
-        sess=generate_session(graph=g, **kwargs),
-        model=model,
-        extra=extra,
-        label=label,
-        name=module,
-    )
 
 
 def transducer_load(modelfile, model, module, languages, quantized=False, stt=True, **kwargs):
@@ -957,26 +481,6 @@ def check_files_local(file):
     return True  
     
 
-def load_1d(modelfile, model, module, quantized=False, **kwargs):
-    # path = check_file(
-    #     file=model,
-    #     module=module,
-    #     keys={'model': 'model.pb'},
-    #     quantized=quantized,
-    #     **kwargs,
-    # )
-    g = load_graph(modelfile, **kwargs)
-    inputs = ['Placeholder']
-    outputs = ['logits']
-    input_nodes, output_nodes = nodes_session(g, inputs, outputs)
-
-    return UNET1D(
-        input_nodes=input_nodes,
-        output_nodes=output_nodes,
-        sess=generate_session(graph=g, **kwargs),
-        model=model,
-        name=module,
-    )
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 

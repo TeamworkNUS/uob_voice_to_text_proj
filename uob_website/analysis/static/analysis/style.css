@@ -1,7 +1,22 @@
-li a {
-    color: green;
-}
-
+/*
 body {
     background: white url("images/background.jpg") no-repeat;
-}
+} */
+
+
+/* ************ Setup for Footer & Whole Page ************ */
+html,body{height:100%;margin:0;padding:0;min-width:768px;}
+
+main{min-height:100%;padding-bottom:100px;}
+footer{height:100px;margin-top:-100px;}
+
+
+
+/* ************ Setup for Legend in History Page ************ */
+.legend { list-style: none; }
+.legend li { float: right; margin-right: 10px; }
+.legend span { border: 1px solid #ccc; float: left; width: 15px; height: 15px; margin: 2px; vertical-align: middle;}
+.legend .complete { background-color: #ffffff; }
+.legend .incomplete { background-color: #0dcaf0; }
+.legend .unanalysis { background-color: #ffc107; }
+

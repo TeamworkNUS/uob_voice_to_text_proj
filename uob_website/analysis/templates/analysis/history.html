@@ -7,62 +7,50 @@
 {% block content %}
 
 
-<div class="row justify-content-center">
-
-<!-- TODO:  filter different data list -->
-{% comment %} 
-<div class="d-flex align-items-start">
-    <div class="nav flex-column nav-pills me-3" id="v-pills-tab" role="tablist" aria-orientation="vertical">
-        <button class="nav-link active" id="v-pills-all-tab" data-bs-toggle="pill" data-bs-target="#v-pills-all" type="button" role="tab" aria-controls="v-pills-all" aria-selected="true">All</button>
-        <button class="nav-link" id="v-pills-pending-tab" data-bs-toggle="pill" data-bs-target="#v-pills-pending" type="button" role="tab" aria-controls="v-pills-pending" aria-selected="false">Pending Analysis</button>
-        <button class="nav-link" id="v-pills-start-tab" data-bs-toggle="pill" data-bs-target="#v-pills-start" type="button" role="tab" aria-controls="v-pills-start" aria-selected="false">Analysis Started</button>
-        <button class="nav-link" id="v-pills-complete-tab" data-bs-toggle="pill" data-bs-target="#v-pills-complete" type="button" role="tab" aria-controls="v-pills-complete" aria-selected="false">Analysis Completed</button>
+<div class="row g-0 justify-content-md-center" style="min-width:768px;">
+    <!-- ****** Legend of History List Color ****** -->
+    <div class="col-11" style="min-width:768px;">
+        <fieldset class="border p-1">
+            {% comment %} <legend  class="float-no ne w-auto">Legend</legend> {% endcomment %}
+            <ul class="legend">
+                <li><span class="complete"></span> Complete </li>
+                <li><span class="incomplete"></span> Incomplete </li>
+                <li><span class="unanalysis"></span> Unanalyzed </li>
+            </ul>
+        </fieldset>
     </div>
-    <div class="tab-content" id="v-pills-tabContent">
-        <div class="tab-pane fade show active" id="v-pills-home" role="tabpanel" aria-labelledby="v-pills-all-tab">...</div>
-        <div class="tab-pane fade" id="v-pills-pending" role="tabpanel" aria-labelledby="v-pills-pending-tab">...</div>
-        <div class="tab-pane fade" id="v-pills-start" role="tabpanel" aria-labelledby="v-pills-start-tab">...</div>
-        <div class="tab-pane fade" id="v-pills-complete" role="tabpanel" aria-labelledby="v-pills-complete-tab">...</div>
-    </div>
-</div>
-{% endcomment %}
 
+    <br>
 
-{% comment %} <div class="col-1"></div> {% endcomment %}
-<div class="col-11"> 
-    <div class="panel panel-default">  
-        <div class="panel-body" style="min-width:1000px;">  
-        
-        <!-- ###### TODO: Add Filters / Search Function ###### -->
+    <!-- ****** History: Audio List ****** -->
+    <div class="col-11" style="min-width:768px;"> 
 
         {% if audioList %}
 
             <form method="post" enctype="multipart/form-data" id="id_form_history" name="form_history">
                 {% csrf_token %}
-                <table class="table table-hover" id='tbl_hist'>
+                <table class="table table-hover" id='tbl_hist' style="table-layout:fixed; width:100%; word-wrap:break-word;">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col">
+                            <th scope="col" style="width:30px">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" value="" id="id_cb_hist_hd" name="cb_hist_hd" onclick="checkAll()">
                                 </div>
                             </th>
-                            <th scope="col">Original Audio Name</th>
-                            <th scope="col">Upload File Name</th>
-                            <th scope="col">No. of Files</th>
-                            <th scope="col">Create By</th>
-                            <th scope="col">Create On</th>
-                            {% comment %} <th scope="col">Size</th> {% endcomment %}
-                            {% comment %} <th scope="col">Duration</th> {% endcomment %}
-                            <th scope="col" width="14%">Actions</th>
+                            <th scope="col" style="width:200px">Original Audio Name</th>
+                            <th scope="col">(No. of Files) Upload File Name</th>
+                            <th scope="col">Description</th>
+                            <th scope="col" style="width:120px">Create By</th>
+                            <th scope="col" style="width:130px">Create On</th>
+                            <th scope="col">Actions</th> <!--style="width:180px"-->
                         </tr>
                     </thead>
                     <tbody>
-                        {% for audio in audioList %}
-                        <tr {% if audio in audioList_unanalysis or audio.analysis == None %} class="table-warning" {% endif %}>
+                        {% for audio in page_object %}
+                        <tr {% if audio in audioList_unanalysis %} class="table-warning" {% elif audio in audioList_complete %} class="" {% else %} class="table-info" {% endif %}>
                             <td>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="{{audio.audio_id}}" id="id_cb_hist_bd_{{forloop.counter}}"  name="cb_hist_bd">  <!--id="flexCheckChecked"-->
+                                    <input class="form-check-input" type="checkbox" value="{{audio.audio_id}}" id="id_cb_hist_bd_{{forloop.counter}}"  name="cb_hist_bd">
                                 </div>
                             </td>
                             <td>
@@ -104,7 +92,7 @@
                                                         </tr>
                                                         <tr>
                                                             <th>Analysis Processed</th>
-                                                            <td>{% if audio.analysis != None or audio.analysis == "{}" %} {{audio.analysis}} {% else %} None {% endif %}</td>
+                                                            <td>{{audio.analysis}}</td>
                                                         </tr>
                                                         <tr>
                                                             <th>Creation</th>
@@ -124,17 +112,12 @@
                                     </div>
                                 </div>
                             </td>
-                            <td>{{ audio.upload_filename}}</td>
-                            <td>{{ audio.upload_file_count}}</td>
+                            <td>({{ audio.upload_file_count}}) {{ audio.upload_filename}}</td>
+                            <td>{{ audio.description}}</td>
                             <td>{{ audio.create_by}}</td>
                             <td>{{ audio.create_date}} <br> {{audio.create_time}}</td>
-                            {% comment %} <td>##size##</td> {% endcomment %}
-                            {% comment %} <td>##duration##</td> {% endcomment %}
                             <td>
-                                {% comment %} <a href="{% url 'analysis:analysis_selection' audio.audio_id %}">Start</a> |  {% endcomment %}
-                                {% comment %} <a href="{% url 'analysis:report' audio.audio_id %}">Report</a> |  {% endcomment %}
-                                {% comment %} <a href="{% url 'analysis:history' %}">Delete</a> {% endcomment %}
-                                {% comment %} <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#singleStart_{{forloop.counter}}" style="font-size:0.75em; padding:0.5em;">Start</button> {% endcomment %}
+                                <!-- ****** Single Audio Process ****** -->
                                 <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#singleStart_{{forloop.counter}}" style="font-size:0.75em; padding:0.5em;" {% if flag_analysisThread_active == True and audio.audio_id in activeAnalysis_audioId_list %} disabled {% endif %}>
                                     {% if flag_analysisThread_active == True and audio.audio_id in activeAnalysis_audioId_list %}
                                         <!-- Spinner: analysis in progress -->
@@ -145,9 +128,6 @@
                                 </button>
                                 <button type="button" class="btn btn-outline-success btn-sm" onclick="location.href='{% url 'analysis:report' audio.audio_id %}'" style="font-size:0.75em; padding:0.5em;">Report</button>
                                 <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#singleDelete_{{forloop.counter}}" style="font-size:0.75em; padding:0.5em;">Delete</button>
-
-                                {% comment %} <span id='id_flag_analysisThread_active' hidden>{{flag_analysisThread_active}}</span> {% endcomment %}
-                                {% comment %} {% for name in threadNameList %}  <br>{{name}}  {% endfor %} {% endcomment %}
                                 
                                 <!-- Form for record deletion -->
                                 <form method="post" enctype="multipart/form-data" id="HistorySingleDelete" name="HistorySingleDelete">
@@ -155,19 +135,19 @@
                                     <!-- Modal -->
                                     <div class="modal fade" id="singleDelete_{{forloop.counter}}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
                                         <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="singleDeleteLabel">Delete</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="singleDeleteLabel">Delete</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    Are you sure to delete {{audio.audio_id}}: {{audio.audio_name}} ?
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    <button type="submit" class="btn btn-danger" id="modal_singleDelete" name="modal_singleDelete" value={{audio.audio_id}}>Delete</button>
+                                                </div>
                                             </div>
-                                            <div class="modal-body">
-                                                Are you sure to delete {{audio.audio_id}}: {{audio.audio_name}} ?
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                <button type="submit" class="btn btn-danger" id="modal_singleDelete" name="modal_singleDelete" value={{audio.audio_id}}>Delete</button>
-                                            </div>
-                                        </div>
                                         </div>
                                     </div>
                                 </form>
@@ -177,28 +157,27 @@
                                     <!-- Modal -->
                                     <div class="modal fade" id="singleStart_{{forloop.counter}}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
                                         <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="singleStartLabel">Analysis Selection</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p class ="text-center">-- Analysis for {{audio.audio_id}} -- </p>
-                                                {{ analysisSelectionForm.analysisChoices.label}}
-                                                <div class="list-group">
-                                                  {% for selection in analysisSelectionForm.analysisChoices %}
-                                                    <label class="list-group-item">
-                                                        {{ selection.tag }}{{ selection.choice_label}}
-                                                    </label> 
-                                                  {% endfor %}
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="singleStartLabel">Analysis Selection</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p class ="text-center">-- Analysis for {{audio.audio_id}} -- </p>
+                                                    {{ analysisSelectionForm.analysisChoices.label}}
+                                                    <div class="list-group">
+                                                    {% for selection in analysisSelectionForm.analysisChoices %}
+                                                        <label class="list-group-item">
+                                                            {{ selection.tag }}{{ selection.choice_label}}
+                                                        </label> 
+                                                    {% endfor %}
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    <button type="submit" class="btn btn-primary" id="modal_singleStart" name="modal_singleStart" value="{{audio.audio_id}}">Start</button>
                                                 </div>
                                             </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                {% comment %} <a href="{% url 'analysis:history' %}"><button type="submit" class="btn btn-primary" id="modal_singleStart" name="modal_singleStart" value={{audio.audio_id}} onclick="location.href='{% url 'analysis:history' %}'">Start</button></a> {% endcomment %}
-                                                <button type="submit" class="btn btn-primary" id="modal_singleStart" name="modal_singleStart" value="{{audio.audio_id}}">Start</button>
-                                            </div>
-                                        </div>
                                         </div>
                                     </div>
                                 </form>
@@ -209,86 +188,110 @@
                 </table>
 
 
-                <div class="d-flex justify-content-end">
-                    {% comment %} 
-                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#batchStart" {% if flag_analysisThread_currUser_active == True %} disabled {% endif %}>
-                        {% if flag_analysisThread_currUser_active == True %}
-                            <!-- Spinner: analysis in progress -->
-                            <span class="spinner-border spinner-border" role="status" aria-hidden="true"></span>
-                        {% else %}
-                            Start
-                        {% endif %}
-                    </button> 
-                    {% endcomment %}
-                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#batchStart" style="margin:0.3em">Start</button>
-                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#batchDelete" style="margin:0.3em">Delete</button>
-                </div>
-
-                <!-- Form for batch deletion -->
-                <form method="post" enctype="multipart/form-data" id="HistoryBatchDelete" name="HistoryBatchDelete">
-                    {% csrf_token %}
-                    <!-- Modal -->
-                    <div class="modal fade" id="batchDelete" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-                        <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="batchDeleteLabel">Delete</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                Are you sure to delete all selected audios ?
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="submit" class="btn btn-danger" id="modal_batchDelete" name="modal_batchDelete" value="" onclick="batchDelete()">Delete</button>
-                            </div>
-                        </div>
-                        </div>
+                <div class="d-flex mb-3">
+                    <!-- ****** Batch Processing ****** -->
+                    <div class="me-auto justify-content-start">
+                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#batchStart" style="margin:0.3em">Start</button>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#batchDelete" style="margin:0.3em">Delete</button>
                     </div>
-                </form>
-                <!-- Form for batch analysis start -->
-                <form method="post" enctype="multipart/form-data" id="HistoryBatchStart" name="HistoryBatchStart">
-                    {% csrf_token %}
-                    <!-- Modal -->
-                    <div class="modal fade" id="batchStart" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-                        <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="batchStartLabel">Analysis Selection</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <p class ="text-center">-- Analysis for Selected Audios -- </p>
-                                {{ analysisSelectionForm.analysisChoices.label}}
-                                <div class="list-group">
-                                    {% for selection in analysisSelectionForm.analysisChoices %}
-                                    <label class="list-group-item">
-                                        {{ selection.tag }}{{ selection.choice_label}}
-                                    </label> 
-                                    {% endfor %}
+
+                    <!-- Form for batch deletion -->
+                    <form method="post" enctype="multipart/form-data" id="HistoryBatchDelete" name="HistoryBatchDelete">
+                        {% csrf_token %}
+                        <!-- Modal -->
+                        <div class="modal fade" id="batchDelete" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="batchDeleteLabel">Delete</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        Are you sure to delete all selected audios ?
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-danger" id="modal_batchDelete" name="modal_batchDelete" value="" onclick="batchDelete()">Delete</button>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="submit" class="btn btn-primary" id="modal_batchStart" name="modal_batchStart" value=""  onclick="batchStart()">Start</button>
+                        </div>
+                    </form>
+                    <!-- Form for batch analysis start -->
+                    <form method="post" enctype="multipart/form-data" id="HistoryBatchStart" name="HistoryBatchStart">
+                        {% csrf_token %}
+                        <!-- Modal -->
+                        <div class="modal fade" id="batchStart" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="batchStartLabel">Analysis Selection</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p class ="text-center">-- Analysis for Selected Audios -- </p>
+                                        {{ analysisSelectionForm.analysisChoices.label}}
+                                        <div class="list-group">
+                                            {% for selection in analysisSelectionForm.analysisChoices %}
+                                            <label class="list-group-item">
+                                                {{ selection.tag }}{{ selection.choice_label}}
+                                            </label> 
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-primary" id="modal_batchStart" name="modal_batchStart" value=""  onclick="batchStart()">Start</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        </div>
+                    </form>
+
+
+                    <!-- ****** Pagination ****** -->
+                    <div class="ms-auto">
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-end">
+                                <li class="page-item">
+                                    <span class="align-middle">
+                                        Page {{ page_object.number }} of {{ page_object.paginator.num_pages }} &nbsp;&nbsp;
+                                    </span>
+                                </li>
+                                {% if page_object.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1">&laquo; First</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_object.previous_page_number }}">Previous</a>
+                                </li>
+                                {% endif %}
+                                {% if page_object.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_object.next_page_number }}">Next</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_object.paginator.num_pages }}">Last &raquo;</a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
                     </div>
-                </form>
-            
+
+                </div>
+                
             </form>
         {% else %}
             <p>No audios are available.</p>
         {% endif %}
-        </div>
+
     </div>
-</div>
 
 
 </div>
 
-<div id="id_scrollBtns" style="position:fixed; right:0; bottom:0"> 
+<!-- ****** Scroll Buttons ****** -->
+<div id="id_scrollBtns" style="position:fixed; right:0; bottom:0; float:right; z-index:9999;"> 
     <button type="button" class="btn btn-secondary" onclick="scrollToTop()"><span class="bi bi-caret-up-fill"></span></button>
     <br>
     <button type="button" class="btn btn-secondary" onclick="scrollToBottom()"><span class="bi bi-caret-down-fill"></span></button>
@@ -297,7 +300,7 @@
 
 
 
-{% comment %} <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script> {% endcomment %}
+
 
 <script language="javascript" type="text/javascript">
     // ***** refresh page for update status of analysis start button ***** //
@@ -314,7 +317,7 @@
         }, 90000);  //refresh every 90s
     });
 
-    // ***** Change the refresh function of browser(F5) which will resubmit the form to redirect to the page ***** //
+    // ***** Change the refresh function of browser(F5) from resubmiting the form to redirecting to the page ***** //
     if (window.history.replaceState ){
         window.history.replaceState( null, null, window.location.href );
     }
@@ -327,6 +330,9 @@
                 {% comment %} $(this).prop("disabled",true) {% endcomment %} //"disabled" doesn't let any form of data to get POSTed. - https://stackoverflow.com/questions/61481957/display-a-checkbox-choice-as-disabled-in-django-3-0-modelform
                 $(this).attr("class","form-check-input me-1 readonly")
                 $(this).attr("style","opacity: .50; filter: alpha(opacity=50); cursor: default;")
+            }
+            else{
+                $(this).prop("checked",true)
             }
         });
         $('input.readonly').on('click', function(evt) {
