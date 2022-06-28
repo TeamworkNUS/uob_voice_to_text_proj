@@ -15,7 +15,7 @@ sdModel = 'resemblyzer' # ? [resemblyzer]
 
 stt_replace_template = './analysis/utils/stt_replace_template.csv'
 profanity_list = './analysis/utils/swear_words_list.txt'
-kyc_product_list = './analysis/utils/items_verify_checklist.csv'
+items_verify_checklist = './analysis/utils/items_verify_checklist.csv'
 userguide_path = './analysis/utils/Voice_To_Text_Analysis_Web_UserGuide.pptx'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 

@@ -25,7 +25,7 @@ SECRET_KEY = 'nf6_@fu6m(4vjk_fa=&*mlya218n9%0an95a8&n32v3y#x8$j+'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -132,6 +132,10 @@ DEFAULT_CHARSET = 'utf-8'
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_URL = '/static/'
+# STATICFILES_DIRS = [
+#     os.path.join(BASE_DIR, 'analysis/static'),
+# ]
+STATIC_ROOT = os.path.join(BASE_DIR, 'analysis/static')
 # MEDIA_ROOT = os.path.join(BASE_DIR,"analysis/audio/")  # new
 MEDIA_ROOT = 'D:/EBAC/Internship/UOB/Projects/uob_web_SIT-copy/audio/'
 MEDIA_URL='/audio/'  # new
@@ -140,4 +144,4 @@ LOGIN_REDIRECT_URL = "main"  # new
 LOGOUT_REDIRECT_URL = "main"  # new
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'   # session engine(default)
-SESSION_COOKIE_AGE = 6000   # Session's cookie expire time (600s)
+SESSION_COOKIE_AGE = 6000   # Session's cookie expire time in seconds (6000s)

@@ -16,7 +16,6 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from django.views.generic.base import TemplateView,RedirectView
-from sympy import Permanent # new
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -26,9 +25,9 @@ urlpatterns = [
     path('analysis/', include('analysis.urls')),
     path("accounts/", include("django.contrib.auth.urls")), # new
     path('analysis/main/', TemplateView.as_view(template_name='analysis/main.html'), name='main'), # new
-    # path('', TemplateView.as_view(template_name='login.html'), name='login'), # new
     path('', RedirectView.as_view(url='/accounts/login', permanent=True)) # new
 ]
 
 
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) # new
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) # new

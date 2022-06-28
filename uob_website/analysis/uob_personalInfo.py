@@ -3,13 +3,13 @@ import os
 import pandas as pd
 from text2digits import text2digits
 from analysis.uob_init import(
-    kyc_product_list
+    items_verify_checklist
 )
 
 def personalInfoDetector(sttDf):
-    if os.path.exists(path=kyc_product_list):
+    if os.path.exists(path=items_verify_checklist):
         print('Extract KYC words to list...')
-        template = pd.read_csv(kyc_product_list)
+        template = pd.read_csv(items_verify_checklist)
         kycWordsList = template['words'][template['category'] == 'kyc'].tolist()
 
     t2d = text2digits.Text2Digits()

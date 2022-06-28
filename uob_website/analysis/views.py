@@ -48,7 +48,7 @@ def main(request):
         num_audios= Audio.objects.filter(flg_delete=None, create_by=str(request.user.username)).count()
         num_audios_unanalysis = Audio.objects.filter(flg_delete=None, create_by=str(request.user.username), analysis='{}').count() + Audio.objects.filter(flg_delete=None, create_by=str(request.user.username), analysis=None).count()
         num_audios_complete = Audio.objects.filter(flg_delete=None, create_by=str(request.user.username), analysis=json.dumps(json_analysisSelections)).count()
-        num_audios_incomplete = num_audios - num_audios_unanalysis
+        num_audios_incomplete = num_audios - num_audios_unanalysis - num_audios_complete
 
         
     context = {'num_audios': num_audios,
@@ -407,9 +407,8 @@ class AnalysisThread(threading.Thread):
             
 
             starttime = datetime.now()
-            sdstt = STTresult.objects.filter(audio_id = queueItem.audio_id)
-            print(self.analysis_selected)
-            print(self.choices)
+            print('analysis selected:', self.analysis_selected)
+            print('available analysis:', self.choices)
             sttDf = pandas.DataFrame()
             for i in self.analysis_selected:
                 i_int = int(i)-1
@@ -417,6 +416,7 @@ class AnalysisThread(threading.Thread):
                 if self.choices[i_int].analysis_name == 'SD+STT':
                     print('*'*30)
                     print("SD+STT starts")
+                    sdstt = STTresult.objects.filter(audio_id = queueItem.audio_id)
                     if not sdstt:
                         try:
                             print("SD+STT running", queueItem.audio_id)
@@ -425,7 +425,7 @@ class AnalysisThread(threading.Thread):
                             print('SD+STT fails out of Exception:', type(e1), e1)
                     else:
                         print("Warning: "+"Audio "+queueItem.audio_id+" has been performed analysis of "+self.choices[i_int].analysis_name)
-                        continue
+                        
                     
                     print("SD+STT ends")
                     print('*'*30)
@@ -433,19 +433,22 @@ class AnalysisThread(threading.Thread):
                 if self.choices[i_int].analysis_name == 'KYC+PII':
                     print('*'*30)
                     print("use KYC+PII starts")
+                    sdstt = STTresult.objects.filter(audio_id = queueItem.audio_id)
                     kycpii = PersonalInfo.objects.filter(audio_id = queueItem.audio_id)
-                    if not kycpii:
-                        try:
-                            print("KYC+PII running", queueItem.audio_id)
-                            sttResult = STTresult.objects.filter(audio_id = queueItem.audio_id)
-                            sdstt = sttResult.values_list('audio_id','slice_id','text')
-                            sttDf = read_frame(sdstt, fieldnames = ['audio_id','slice_id','text'])
-                            sttDf = uob_main.kyc_and_pii(sttDf, queueItem, self.choices[i_int].analysis_name, self.args['username'])
-                        except Exception as e2:
-                            print('KYC+PII fails out of Exception:', type(e2), e2)
+                    if sdstt:
+                        if not kycpii:
+                            try:
+                                print("KYC+PII running", queueItem.audio_id)
+                                sttResult = STTresult.objects.filter(audio_id = queueItem.audio_id)
+                                sdstt = sttResult.values_list('audio_id','slice_id','text')
+                                sttDf = read_frame(sdstt, fieldnames = ['audio_id','slice_id','text'])
+                                sttDf = uob_main.kyc_and_pii(sttDf, queueItem, self.choices[i_int].analysis_name, self.args['username'])
+                            except Exception as e2:
+                                print('KYC+PII fails out of Exception:', type(e2), e2)
+                        else:
+                            print("Warning: "+"Audio "+queueItem.audio_id+" has been performed analysis of "+self.choices[i_int].analysis_name)
                     else:
-                        print("Warning: "+"Audio "+queueItem.audio_id+" has been performed analysis of "+self.choices[i_int].analysis_name)
-                        continue
+                        print("Warning: "+"Audio "+queueItem.audio_id+" has not been performed analysis of 'SD+STT' before 'KYC+PII' analysis.")
               
                     print("use KYC+PII ends")
                     print('*'*30)
