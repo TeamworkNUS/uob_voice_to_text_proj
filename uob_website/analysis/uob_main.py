@@ -9,7 +9,7 @@ from gensim.models import Word2Vec
 
 
 from analysis import (uob_audiosegmentation, uob_label, uob_mainprocess, uob_noisereduce,
-                      uob_speakerdiarization, uob_stt, uob_personalInfo, uob_storage)
+                      uob_speakerdiarization, uob_stt, uob_personalInfo, uob_storage, uob_utils)
 from analysis.models import Audio
 from .uob_init import (
     pretrained_model_path,
@@ -217,11 +217,13 @@ def sd_and_stt(audio, starttime, analysis_name, username):
     analysis = json.loads(audio.analysis)
     print('json object analysis:', analysis)
     if analysis_name not in analysis.values():
-        analysis_key = int(max(analysis.keys()))+1 if analysis!={} else 0
+        json_analysisSelections, json_analysisSelections_str, dict_analysisSelections = uob_utils.get_analysisSelections_json()
+        reverse_dict = {v : k for k, v in dict_analysisSelections.items()}
+        analysis_key = reverse_dict[analysis_name]
         analysis[analysis_key] = analysis_name
     else:
         print(analysis_name, 'has been done before')
-    analysis = json.dumps(analysis)
+    analysis = json.dumps(analysis, sort_keys=True)
     print('json string analysis:', analysis)
     uob_storage.dbUpdateAudio_processedInfo(audio_id = audio.audio_id, 
                                             username = username,
@@ -252,17 +254,19 @@ def kyc_and_pii(sttDf, audio, analysis_name, username):
     #### * Store output to database
     print('*'*30)
     print("Insert KYC & PII Output to Database Start")
-    uob_storage.dbInsertPersonalInfo(finalDf=final, audio_id=audio.audio_id)  
+    uob_storage.dbInsertPersonalInfo(finalDf=final, audio_id=audio.audio_id, username=username)  
     
     audio = Audio.objects.get(audio_id = audio.audio_id)
     analysis = json.loads(audio.analysis)
     print('json object analysis:', analysis)
     if analysis_name not in analysis.values():
-        analysis_key = int(max(analysis.keys()))+1 if analysis!={} else 0
+        json_analysisSelections, json_analysisSelections_str, dict_analysisSelections = uob_utils.get_analysisSelections_json()
+        reverse_dict = {v : k for k, v in dict_analysisSelections.items()}
+        analysis_key = reverse_dict[analysis_name]
         analysis[analysis_key] = analysis_name
     else:
         print(analysis_name, 'has been done before')
-    analysis = json.dumps(analysis)
+    analysis = json.dumps(analysis, sort_keys=True)
     print('json string analysis:', analysis)
     uob_storage.dbUpdateAudio_processedInfo(audio_id = audio.audio_id, 
                                             username = username,

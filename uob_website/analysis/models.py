@@ -138,5 +138,8 @@ class PersonalInfo(models.Model):
     slice_id = models.IntegerField() 
     is_kyc = models.CharField(max_length=5)
     is_pii = models.CharField(max_length=5)
+    create_by = models.CharField(max_length=50,null=False,default=str(os.getlogin()))
+    create_date = models.DateField(null=False,default=time.strftime("%Y-%m-%d"))
+    create_time = models.TimeField(null=False,default=time.strftime("%H:%M:%S"))
      
                 

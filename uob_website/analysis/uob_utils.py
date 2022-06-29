@@ -7,6 +7,8 @@ from pydub import AudioSegment
 import wave
 import filetype # to check file type
 
+from .models import AnalysisSelection, Audio, STTresult, PersonalInfo
+
 
 def check_file_type(audioname, audiopath):
     audiofile = os.path.join(audiopath, audioname)
@@ -98,3 +100,56 @@ def get_audio_meta(audioname,audiopath):
         
         
     
+def get_analysisSelections_json():
+    analysisSelections = AnalysisSelection.objects.all()
+    dict_analysisSelections = {}
+    for i in range(analysisSelections.count()):
+        dict_analysisSelections["{}".format(analysisSelections[i].analysisSelection_id)] = analysisSelections[i].analysis_name
+    json_analysisSelections_str = json.dumps(dict_analysisSelections, sort_keys=True)
+    json_analysisSelections = json.loads(json_analysisSelections_str)
+    return json_analysisSelections, json_analysisSelections_str, dict_analysisSelections
+
+
+
+def synchronize_analysis():
+    ## All available analysis
+    analysisSelections = AnalysisSelection.objects.all()
+    json_analysisSelections = {}
+    for i in range(analysisSelections.count()):
+        json_analysisSelections[analysisSelections[i].analysisSelection_id] = analysisSelections[i].analysis_name
+
+    ## Check
+    audiosQuerySet = Audio.objects.all()
+    audioIdList=[]
+    for audio in audiosQuerySet:
+        audioIdList.append(audio.audio_id)
+    for audioID in audioIdList:
+        print(audioID,'----------------')
+        ## 1. If analysis==None, change it to "{}"
+        try:
+            audio = Audio.objects.get(audio_id = audioID)
+            print("audio.analysis 1: ", audio.analysis)
+            if audio.analysis == None or audio.analysis == "":
+                Audio.objects.filter(audio_id = audioID).update(analysis="{}")
+        except Exception as e1:
+            print('e1: ',e1)
+            
+        
+        ## 2. Synchronize audio.analysis and analysis result in corresponding table
+        sttResult_cnt = STTresult.objects.filter(audio_id = audioID).count()
+        personalInfo_cnt = PersonalInfo.objects.filter(audio_id = audioID).count()
+        analysisDict = {}
+        try:
+            audio = Audio.objects.get(audio_id = audioID)
+            audio_analysis = json.loads(audio.analysis).values()
+            print('audio_analysis 2: ',audio_analysis)
+            if sttResult_cnt:
+                sttSelec = {k:v for k,v in json_analysisSelections.items() if v=='SD+STT'}
+                analysisDict.update(sttSelec)
+            if personalInfo_cnt:
+                piiSelec = {k:v for k,v in json_analysisSelections.items() if v=='KYC+PII'}
+                analysisDict.update(piiSelec)
+            analysisDict_list = json.dumps(analysisDict)  
+            Audio.objects.filter(audio_id = audioID).update(analysis="%s"%analysisDict_list)  
+        except Exception as e3:
+            print('e3: ', e3)

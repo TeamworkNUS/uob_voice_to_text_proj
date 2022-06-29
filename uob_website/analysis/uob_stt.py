@@ -30,7 +30,7 @@ def stt_conversion_malaya_speech(slices_path, rec):
             inputFile = slices_path+"/"+filename
             # singlish, sr = malaya_speech.load(inputFile)
             y, sr = librosa.load(inputFile,sr= None, mono= True)
-            if librosa.get_duration(y=y, sr=sr) > 0.5:
+            if librosa.get_duration(y=y, sr=sr) > 0.05:
                 singlish, sr = librosa.load(inputFile,sr= 16000, mono= True)
                 # greedy_decoder
                 transcription = rec.greedy_decoder([singlish])
@@ -58,18 +58,22 @@ def stt_conversion_malaya_wav2vec2(slices_path, processor, model):
             namef_index = int(namef_index)
             inputFile = slices_path+"/"+filename
             
-            audio, rate = librosa.load(inputFile, sr = 16000)
-            
-            # audio file is decoded on the fly
-            inputs = processor(audio, sampling_rate=rate, return_tensors="pt")
-    
-            with torch.no_grad():
-                logits = model(**inputs).logits
-                predicted_ids = torch.argmax(logits, dim=-1)
-            
-            # transcribe speech
-            transcription = processor.batch_decode(predicted_ids)
-            stt.loc[len(stt)]=[namef_index, transcription[0].lower(), filename]
+            y, sr = librosa.load(inputFile,sr= None, mono= True)
+            if librosa.get_duration(y=y, sr=sr) > 0.05:
+                audio, rate = librosa.load(inputFile, sr = 16000)
+                
+                # audio file is decoded on the fly
+                inputs = processor(audio, sampling_rate=rate, return_tensors="pt")
+        
+                with torch.no_grad():
+                    logits = model(**inputs).logits
+                    predicted_ids = torch.argmax(logits, dim=-1)
+                
+                # transcribe speech
+                transcription = processor.batch_decode(predicted_ids)
+                stt.loc[len(stt)]=[namef_index, transcription[0].lower(), filename]
+            else:
+                stt.loc[len(stt)]=[namef_index, '', filename]
             
     return stt
 

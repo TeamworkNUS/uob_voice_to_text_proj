@@ -85,6 +85,9 @@ CREATE TABLE IF NOT EXISTS `analysis_analysisselection` (
   `slice_id` int NOT NULL,
   `is_kyc` varchar(5) COLLATE utf8mb4_bin DEFAULT NULL,
   `is_pii` varchar(5) COLLATE utf8mb4_bin DEFAULT NULL,
+  `create_by` varchar(50) COLLATE utf8mb4_bin NOT NULL,
+  `create_date` varchar(20) COLLATE utf8mb4_bin NOT NULL,
+  `create_time` time NOT NULL,
   PRIMARY KEY (`audio_slice_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 -- -----------------------------------------------------------------------------------

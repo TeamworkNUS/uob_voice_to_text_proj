@@ -32,14 +32,11 @@ from .uob_init import (
 @login_required(login_url="/accounts/login/")
 def main(request):
     num_audios_all = Audio.objects.all().count()
-    analysisSelections = AnalysisSelection.objects.all()
-    json_analysisSelections = {}
-    for i in range(analysisSelections.count()):
-        json_analysisSelections["{}".format(i)] = analysisSelections[i].analysis_name
+    json_analysisSelections, json_analysisSelections_str, dict_analysisSelections = uob_utils.get_analysisSelections_json()
     if request.user.is_staff: #is_superuser:
         num_audios= Audio.objects.filter(flg_delete=None).count()
         num_audios_unanalysis = Audio.objects.filter(flg_delete=None, analysis='{}').count() + Audio.objects.filter(flg_delete=None, analysis=None).count()
-        num_audios_complete = Audio.objects.filter(flg_delete=None, analysis=json.dumps(json_analysisSelections)).count()
+        num_audios_complete = Audio.objects.filter(flg_delete=None, analysis=json_analysisSelections_str).count()
         num_audios_incomplete = num_audios - num_audios_unanalysis - num_audios_complete
     else:
         ### Option 1: Using Windows Authentication
@@ -47,10 +44,10 @@ def main(request):
         ### Option 2: Using Django Authentication
         num_audios= Audio.objects.filter(flg_delete=None, create_by=str(request.user.username)).count()
         num_audios_unanalysis = Audio.objects.filter(flg_delete=None, create_by=str(request.user.username), analysis='{}').count() + Audio.objects.filter(flg_delete=None, create_by=str(request.user.username), analysis=None).count()
-        num_audios_complete = Audio.objects.filter(flg_delete=None, create_by=str(request.user.username), analysis=json.dumps(json_analysisSelections)).count()
+        num_audios_complete = Audio.objects.filter(flg_delete=None, create_by=str(request.user.username), analysis=json_analysisSelections_str).count()
         num_audios_incomplete = num_audios - num_audios_unanalysis - num_audios_complete
 
-        
+
     context = {'num_audios': num_audios,
                'num_audios_all': num_audios_all,
                'num_audios_unanalysis': num_audios_unanalysis,
@@ -180,7 +177,7 @@ def history(request):
                     print('valid checked')
                     analysis_selected = analysisSelectionForm.cleaned_data.get('analysisChoices') #['1', '2']
                     print('analysisChoices: ', analysis_selected)
-                    choices = AnalysisSelection.objects.all()
+                    _, _, choices = uob_utils.get_analysisSelections_json()
                     json_analysis_selection = {}
                     
                     ### * Start to Analyze
@@ -239,7 +236,7 @@ def history(request):
                 print('analysis form valid checked')
                 analysis_selected = analysisSelectionForm.cleaned_data.get('analysisChoices')
                 print('analysisChoices: ', analysis_selected)
-                choices = AnalysisSelection.objects.all()
+                _, _, choices = uob_utils.get_analysisSelections_json()
                 json_analysis_selection = {}
                 
                 ### * Start to Analyze
@@ -295,18 +292,16 @@ def history(request):
     ### Option 1: Using Windows Authentication
     # replace "request.user.username" with "os.getlogin()"
     ### Option 2: Using Django Authentication
-    analysisSelections = AnalysisSelection.objects.all()
-    json_analysisSelections = {}
-    for i in range(analysisSelections.count()):
-        json_analysisSelections["{}".format(i)] = analysisSelections[i].analysis_name
+    json_analysisSelections, json_analysisSelections_str, dict_analysisSelections = uob_utils.get_analysisSelections_json()
+
     if request.user.is_staff:
         audioList_unanalysis = Audio.objects.filter(flg_delete=None, analysis='{}').order_by('-audio_id')
         audioList = Audio.objects.filter(flg_delete=None).order_by('-audio_id')
-        audioList_complete = Audio.objects.filter(flg_delete=None, analysis=json.dumps(json_analysisSelections)).order_by('-audio_id')
+        audioList_complete = Audio.objects.filter(flg_delete=None, analysis=json_analysisSelections_str).order_by('-audio_id')
     else:
         audioList_unanalysis = Audio.objects.filter(flg_delete=None, create_by=str(request.user.username), analysis='{}').order_by('-audio_id')
         audioList = Audio.objects.filter(flg_delete=None, create_by=str(request.user.username)).order_by('-audio_id')
-        audioList_complete = Audio.objects.filter(flg_delete=None, create_by=str(request.user.username), analysis=json.dumps(json_analysisSelections)).order_by('-audio_id')
+        audioList_complete = Audio.objects.filter(flg_delete=None, create_by=str(request.user.username), analysis=json_analysisSelections_str).order_by('-audio_id')
 
     paginator = Paginator(audioList, 10)  # show 10 object per page
     if 'page' in request.GET:
@@ -411,26 +406,26 @@ class AnalysisThread(threading.Thread):
             print('available analysis:', self.choices)
             sttDf = pandas.DataFrame()
             for i in self.analysis_selected:
-                i_int = int(i)-1
-                self.json_analysis_selection[str(i_int)] = self.choices[i_int].analysis_name  #example: {"0":"SD+STT", "1":"use case 1"}
-                if self.choices[i_int].analysis_name == 'SD+STT':
+                i_int = str(int(i))
+                self.json_analysis_selection[i_int] = self.choices[i_int]  #example: {"0":"SD+STT", "1":"use case 1"}
+                if self.choices[i_int] == 'SD+STT':
                     print('*'*30)
                     print("SD+STT starts")
                     sdstt = STTresult.objects.filter(audio_id = queueItem.audio_id)
                     if not sdstt:
                         try:
                             print("SD+STT running", queueItem.audio_id)
-                            uob_main.sd_and_stt(queueItem, starttime, self.choices[i_int].analysis_name, self.args['username'])
+                            uob_main.sd_and_stt(queueItem, starttime, self.choices[i_int], self.args['username'])
                         except Exception as e1:
                             print('SD+STT fails out of Exception:', type(e1), e1)
                     else:
-                        print("Warning: "+"Audio "+queueItem.audio_id+" has been performed analysis of "+self.choices[i_int].analysis_name)
+                        print("Warning: "+"Audio "+queueItem.audio_id+" has been performed analysis of "+self.choices[i_int])
                         
                     
                     print("SD+STT ends")
                     print('*'*30)
                     
-                if self.choices[i_int].analysis_name == 'KYC+PII':
+                if self.choices[i_int] == 'KYC+PII':
                     print('*'*30)
                     print("use KYC+PII starts")
                     sdstt = STTresult.objects.filter(audio_id = queueItem.audio_id)
@@ -442,18 +437,18 @@ class AnalysisThread(threading.Thread):
                                 sttResult = STTresult.objects.filter(audio_id = queueItem.audio_id)
                                 sdstt = sttResult.values_list('audio_id','slice_id','text')
                                 sttDf = read_frame(sdstt, fieldnames = ['audio_id','slice_id','text'])
-                                sttDf = uob_main.kyc_and_pii(sttDf, queueItem, self.choices[i_int].analysis_name, self.args['username'])
+                                sttDf = uob_main.kyc_and_pii(sttDf, queueItem, self.choices[i_int], self.args['username'])
                             except Exception as e2:
                                 print('KYC+PII fails out of Exception:', type(e2), e2)
                         else:
-                            print("Warning: "+"Audio "+queueItem.audio_id+" has been performed analysis of "+self.choices[i_int].analysis_name)
+                            print("Warning: "+"Audio "+queueItem.audio_id+" has been performed analysis of "+self.choices[i_int])
                     else:
                         print("Warning: "+"Audio "+queueItem.audio_id+" has not been performed analysis of 'SD+STT' before 'KYC+PII' analysis.")
               
                     print("use KYC+PII ends")
                     print('*'*30)
                     
-                if self.choices[i_int].analysis_name == 'use case 3':
+                if self.choices[i_int] == 'use case 3':
                     print('*'*30)
                     print("use case 3 starts")
                     print("use case 3 ends")
@@ -534,4 +529,14 @@ def download_userguide(request):
         response['Content-Disposition'] = 'inline; filename=%s'%(file_export_name)
         return response
     return redirect(reverse('analysis:about'))
-    
+
+
+def synchronize_analysis(request):
+    try:
+        uob_utils.synchronize_analysis()
+        messages.success(request, 'Synchronize audio analysis status success!')
+    except Exception as e:
+        print("Synchronize analysis failed out of Exception: ", type(e), e)
+        messages.error(request, 'Synchronize audio analysis status error! Exception: {}, {}'.format(type(e), e))
+
+    return redirect(reverse('analysis:about'))  

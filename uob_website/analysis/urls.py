@@ -18,5 +18,7 @@ urlpatterns = [
     path('about/', views.about, name='about'),
     # ex: /analysis/about/download_userguide/
     path('about/download_userguide/', views.download_userguide, name='download_userguide'),
+    # ex: /analysis/about/synchronize_analysis/
+    path('about/synchronize_analysis/', views.synchronize_analysis, name='synchronize_analysis'),
 
 ]
